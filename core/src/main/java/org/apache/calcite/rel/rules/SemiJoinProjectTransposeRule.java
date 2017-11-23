@@ -91,7 +91,7 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
 
     SemiJoin newSemiJoin =
         SemiJoin.create(project.getInput(), semiJoin.getRight(), newCondition,
-            ImmutableIntList.copyOf(newLeftKeys), semiJoin.getRightKeys());
+            ImmutableIntList.copyOf(newLeftKeys), semiJoin.getRightKeys(), semiJoin.isAnti);
 
     // Create the new projection.  Note that the projection expressions
     // are the same as the original because they only reference the LHS

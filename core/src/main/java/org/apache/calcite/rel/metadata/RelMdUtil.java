@@ -133,8 +133,12 @@ public class RelMdUtil {
    */
   public static double computeSemiJoinSelectivity(RelMetadataQuery mq,
       RelNode factRel, RelNode dimRel, SemiJoin rel) {
-    return computeSemiJoinSelectivity(mq, factRel, dimRel, rel.getLeftKeys(),
+    double selectivity = computeSemiJoinSelectivity(mq, factRel, dimRel, rel.getLeftKeys(),
         rel.getRightKeys());
+    if (rel.isAnti) {
+      selectivity = 1d - selectivity;
+    }
+    return selectivity;
   }
 
   /**
@@ -691,13 +695,17 @@ public class RelMdUtil {
   /** Returns an estimate of the number of rows returned by a
    * {@link SemiJoin}. */
   public static Double getSemiJoinRowCount(RelMetadataQuery mq, RelNode left,
-      RelNode right, JoinRelType joinType, RexNode condition) {
+      RelNode right, JoinRelType joinType, RexNode condition, boolean isAnti) {
     // TODO:  correlation factor
     final Double leftCount = mq.getRowCount(left);
     if (leftCount == null) {
       return null;
     }
-    return leftCount * RexUtil.getSelectivity(condition);
+    double selectivity = RexUtil.getSelectivity(condition);
+    if (isAnti) {
+      selectivity = 1d - selectivity;
+    }
+    return leftCount * selectivity;
   }
 
   public static double estimateFilteredRows(RelNode child, RexProgram program,

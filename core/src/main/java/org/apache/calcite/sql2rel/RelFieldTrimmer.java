@@ -667,7 +667,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     relBuilder.push(newInputs.get(1));
 
     if (join instanceof SemiJoin) {
-      relBuilder.semiJoin(newConditionExpr);
+      SemiJoin semiJoin = (SemiJoin) join;
+      if (semiJoin.isAnti) {
+        relBuilder.antiJoin(newConditionExpr);
+      } else {
+        relBuilder.semiJoin(newConditionExpr);
+      }
       // For SemiJoins only map fields from the left-side
       Mapping inputMapping = inputMappings.get(0);
       mapping = Mappings.create(MappingType.INVERSE_SURJECTION,

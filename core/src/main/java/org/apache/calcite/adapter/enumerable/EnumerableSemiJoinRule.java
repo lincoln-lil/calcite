@@ -45,7 +45,7 @@ class EnumerableSemiJoinRule extends ConverterRule {
       newInputs.add(input);
     }
     return EnumerableSemiJoin.create(newInputs.get(0), newInputs.get(1),
-        semiJoin.getCondition(), semiJoin.leftKeys, semiJoin.rightKeys);
+        semiJoin.getCondition(), semiJoin.leftKeys, semiJoin.rightKeys, semiJoin.isAnti);
   }
 }
 

@@ -320,7 +320,7 @@ public class LoptSemiJoinOptimizer {
     }
     return SemiJoin.create(factRel, dimRel, semiJoinCondition,
         ImmutableIntList.copyOf(truncatedLeftKeys),
-        ImmutableIntList.copyOf(truncatedRightKeys));
+        ImmutableIntList.copyOf(truncatedRightKeys), false);
   }
 
   /**
@@ -582,7 +582,8 @@ public class LoptSemiJoinOptimizer {
                 chosenSemiJoins[bestDimIdx],
                 semiJoin.getCondition(),
                 semiJoin.getLeftKeys(),
-                semiJoin.getRightKeys());
+                semiJoin.getRightKeys(),
+                semiJoin.isAnti);
         chosenSemiJoins[factIdx] = chosenSemiJoin;
 
         // determine if the dimension table doesn't need to be joined

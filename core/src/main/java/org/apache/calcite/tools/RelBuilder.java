@@ -82,6 +82,8 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -1520,6 +1522,20 @@ public class RelBuilder {
   /** Creates a {@link SemiJoin}. */
   public RelBuilder semiJoin(RexNode... conditions) {
     return semiJoin(ImmutableList.copyOf(conditions));
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.SemiJoin}, which represents anti-join. */
+  public RelBuilder antiJoin(Iterable<? extends RexNode> conditions) {
+    final Frame right = stack.pop();
+    final RelNode semiJoin =
+            semiJoinFactory.createAntiJoin(peek(), right.rel, and(conditions));
+    replaceTop(semiJoin);
+    return this;
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.SemiJoin}, which represents anti-join. */
+  public RelBuilder antiJoin(RexNode... conditions) {
+    return antiJoin(ImmutableList.copyOf(conditions));
   }
 
   /** Assigns a table alias to the top entry on the stack. */

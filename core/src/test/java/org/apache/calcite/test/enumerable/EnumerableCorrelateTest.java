@@ -35,7 +35,7 @@ public class EnumerableCorrelateTest {
             "select empid, name from emps e where exists (select 1 from depts d where d.deptno=e.deptno)")
         .explainContains(""
             + "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t0], name=[$t2])\n"
-            + "  EnumerableSemiJoin(condition=[=($1, $3)], joinType=[inner])\n"
+            + "  EnumerableSemiJoin(condition=[=($1, $3)], joinType=[inner], isAnti=[false])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableTableScan(table=[[s, depts]])")

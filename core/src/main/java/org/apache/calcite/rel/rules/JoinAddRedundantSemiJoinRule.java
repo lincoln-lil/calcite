@@ -75,7 +75,8 @@ public class JoinAddRedundantSemiJoinRule extends RelOptRule {
             origJoinRel.getRight(),
             origJoinRel.getCondition(),
             joinInfo.leftKeys,
-            joinInfo.rightKeys);
+            joinInfo.rightKeys,
+            false);
 
     RelNode newJoinRel =
         origJoinRel.copy(

@@ -2794,7 +2794,7 @@ public class JdbcTest {
             + "})])\n"
             + "    EnumerableTableScan(table=[[hr, depts]])")
         .explainContains(""
-            + "EnumerableSemiJoin(condition=[=($0, $5)], joinType=[inner])\n"
+            + "EnumerableSemiJoin(condition=[=($0, $5)], joinType=[inner], isAnti=[false])\n"
             + "  EnumerableTableScan(table=[[hr, depts]])\n"
             + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])")

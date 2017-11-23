@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -41,6 +42,11 @@ import com.google.common.collect.ImmutableSet;
  * <p>The effect is something like the SQL {@code IN} operator.
  */
 public class SemiJoin extends EquiJoin {
+  //~ Instance fields --------------------------------------------------------
+
+  // `true` is anti-join, `false` is semi-join
+  public final boolean isAnti;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -55,6 +61,7 @@ public class SemiJoin extends EquiJoin {
    * @param condition join condition
    * @param leftKeys  left keys of the semijoin
    * @param rightKeys right keys of the semijoin
+   * @param isAnti   `true` is anti-join, `false` is semi-join
    */
   public SemiJoin(
       RelOptCluster cluster,
@@ -63,7 +70,8 @@ public class SemiJoin extends EquiJoin {
       RelNode right,
       RexNode condition,
       ImmutableIntList leftKeys,
-      ImmutableIntList rightKeys) {
+      ImmutableIntList rightKeys,
+      boolean isAnti) {
     super(
         cluster,
         traitSet,
@@ -74,14 +82,15 @@ public class SemiJoin extends EquiJoin {
         rightKeys,
         ImmutableSet.of(),
         JoinRelType.INNER);
+    this.isAnti = isAnti;
   }
 
   /** Creates a SemiJoin. */
   public static SemiJoin create(RelNode left, RelNode right, RexNode condition,
-      ImmutableIntList leftKeys, ImmutableIntList rightKeys) {
+      ImmutableIntList leftKeys, ImmutableIntList rightKeys, boolean isAnti) {
     final RelOptCluster cluster = left.getCluster();
     return new SemiJoin(cluster, cluster.traitSetOf(Convention.NONE), left,
-        right, condition, leftKeys, rightKeys);
+        right, condition, leftKeys, rightKeys, isAnti);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -90,9 +99,14 @@ public class SemiJoin extends EquiJoin {
       RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
     assert joinType == JoinRelType.INNER;
     final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
-    assert joinInfo.isEqui();
+    // supports non-equi condition
+    // assert joinInfo.isEqui();
     return new SemiJoin(getCluster(), traitSet, left, right, condition,
-        joinInfo.leftKeys, joinInfo.rightKeys);
+        joinInfo.leftKeys, joinInfo.rightKeys, isAnti);
+  }
+
+  @Override public JoinInfo analyzeCondition() {
+    return JoinInfo.of(left, right, condition);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
@@ -103,7 +117,7 @@ public class SemiJoin extends EquiJoin {
 
   @Override public double estimateRowCount(RelMetadataQuery mq) {
     return Util.first(
-        RelMdUtil.getSemiJoinRowCount(mq, left, right, joinType, condition),
+        RelMdUtil.getSemiJoinRowCount(mq, left, right, joinType, condition, isAnti),
         1D);
   }
 
@@ -122,6 +136,11 @@ public class SemiJoin extends EquiJoin {
         null,
         ImmutableList.of());
   }
+
+  @Override public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw).item("isAnti", isAnti);
+  }
+
 }
 
 // End SemiJoin.java

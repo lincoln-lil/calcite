@@ -195,8 +195,8 @@ public class RelMdRowCount
         RelMdUtil.makeSemiJoinSelectivityRexNode(mq, rel);
 
     return NumberUtil.multiply(
-        mq.getSelectivity(rel.getLeft(), semiJoinSelectivity),
-        mq.getRowCount(rel.getLeft()));
+            mq.getSelectivity(rel.getLeft(), semiJoinSelectivity),
+            mq.getRowCount(rel.getLeft()));
   }
 
   public Double getRowCount(Aggregate rel, RelMetadataQuery mq) {

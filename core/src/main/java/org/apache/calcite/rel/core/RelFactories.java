@@ -329,6 +329,16 @@ public class RelFactories {
      * @param condition        Join condition
      */
     RelNode createSemiJoin(RelNode left, RelNode right, RexNode condition);
+
+    /**
+     * Creates a anti-join.
+     *
+     * @param left             Left input
+     * @param right            Right input
+     * @param condition        Join condition
+     */
+    RelNode createAntiJoin(RelNode left, RelNode right, RexNode condition);
+
   }
 
   /**
@@ -340,7 +350,14 @@ public class RelFactories {
         RexNode condition) {
       final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
       return SemiJoin.create(left, right,
-        condition, joinInfo.leftKeys, joinInfo.rightKeys);
+        condition, joinInfo.leftKeys, joinInfo.rightKeys, false);
+    }
+
+    public RelNode createAntiJoin(RelNode left, RelNode right,
+            RexNode condition) {
+      final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
+      return SemiJoin.create(left, right,
+              condition, joinInfo.leftKeys, joinInfo.rightKeys, true);
     }
   }
 

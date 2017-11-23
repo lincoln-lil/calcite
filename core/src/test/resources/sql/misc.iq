@@ -420,7 +420,7 @@ where exists (
 (3 rows)
 
 !ok
-EnumerableSemiJoin(condition=[=($1, $5)], joinType=[inner])
+EnumerableSemiJoin(condition=[=($1, $5)], joinType=[inner], isAnti=[false])
   EnumerableTableScan(table=[[hr, emps]])
   EnumerableTableScan(table=[[hr, depts]])
 !plan

@@ -162,7 +162,8 @@ public class SemiJoinJoinTransposeRule extends RelOptRule {
             semiJoin.getRight(),
             newSemiJoinFilter,
             ImmutableIntList.copyOf(newLeftKeys),
-            rightKeys);
+            rightKeys,
+            semiJoin.isAnti);
 
     RelNode leftJoinRel;
     RelNode rightJoinRel;

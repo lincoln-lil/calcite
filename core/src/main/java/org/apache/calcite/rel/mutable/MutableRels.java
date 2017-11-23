@@ -247,7 +247,11 @@ public abstract class MutableRels {
       final MutableSemiJoin semiJoin = (MutableSemiJoin) node;
       relBuilder.push(fromMutable(semiJoin.getLeft(), relBuilder));
       relBuilder.push(fromMutable(semiJoin.getRight(), relBuilder));
-      relBuilder.semiJoin(semiJoin.condition);
+      if (semiJoin.isAnti) {
+        relBuilder.antiJoin(semiJoin.condition);
+      } else {
+        relBuilder.semiJoin(semiJoin.condition);
+      }
       return relBuilder.build();
     case CORRELATE:
       final MutableCorrelate correlate = (MutableCorrelate) node;
@@ -368,7 +372,8 @@ public abstract class MutableRels {
       final MutableRel left = toMutable(semiJoin.getLeft());
       final MutableRel right = toMutable(semiJoin.getRight());
       return MutableSemiJoin.of(semiJoin.getRowType(), left, right,
-          semiJoin.getCondition(), semiJoin.getLeftKeys(), semiJoin.getRightKeys());
+          semiJoin.getCondition(), semiJoin.getLeftKeys(), semiJoin.getRightKeys(),
+          semiJoin.isAnti);
     }
     if (rel instanceof Join) {
       final Join join = (Join) rel;

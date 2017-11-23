@@ -64,7 +64,8 @@ public class SemiJoinFilterTransposeRule extends RelOptRule {
             semiJoin.getRight(),
             semiJoin.getCondition(),
             semiJoin.getLeftKeys(),
-            semiJoin.getRightKeys());
+            semiJoin.getRightKeys(),
+            semiJoin.isAnti);
 
     final RelFactories.FilterFactory factory =
         RelFactories.DEFAULT_FILTER_FACTORY;

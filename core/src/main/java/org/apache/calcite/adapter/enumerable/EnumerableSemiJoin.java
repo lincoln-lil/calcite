@@ -47,19 +47,20 @@ public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
       RelNode right,
       RexNode condition,
       ImmutableIntList leftKeys,
-      ImmutableIntList rightKeys)
+      ImmutableIntList rightKeys,
+      boolean isAnti)
       throws InvalidRelException {
-    super(cluster, traits, left, right, condition, leftKeys, rightKeys);
+    super(cluster, traits, left, right, condition, leftKeys, rightKeys, isAnti);
   }
 
   /** Creates an EnumerableSemiJoin. */
   public static EnumerableSemiJoin create(RelNode left, RelNode right, RexNode condition,
-      ImmutableIntList leftKeys, ImmutableIntList rightKeys) {
+      ImmutableIntList leftKeys, ImmutableIntList rightKeys, boolean indicator) {
     final RelOptCluster cluster = left.getCluster();
     try {
       return new EnumerableSemiJoin(cluster,
           cluster.traitSetOf(EnumerableConvention.INSTANCE), left,
-          right, condition, leftKeys, rightKeys);
+          right, condition, leftKeys, rightKeys, indicator);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
       // internal error.
@@ -72,10 +73,11 @@ public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
       boolean semiJoinDone) {
     assert joinType == JoinRelType.INNER;
     final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
-    assert joinInfo.isEqui();
+    // supports non-equi condition
+    // assert joinInfo.isEqui();
     try {
       return new EnumerableSemiJoin(getCluster(), traitSet, left, right,
-          condition, joinInfo.leftKeys, joinInfo.rightKeys);
+          condition, joinInfo.leftKeys, joinInfo.rightKeys, isAnti);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
       // internal error.
