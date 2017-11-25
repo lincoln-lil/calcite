@@ -3260,13 +3260,26 @@ public abstract class RelOptUtil {
         originalJoin.copy(originalJoin.getTraitSet(),
             joinCond, left, right, joinType, originalJoin.isSemiJoinDone()));
 
-    if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
-      Mappings.TargetMapping mapping =
-          Mappings.createShiftMapping(
-              leftCount + extraLeftExprs.size()
-                  + rightCount + extraRightExprs.size(),
-              0, 0, leftCount,
-              leftCount, leftCount + extraLeftExprs.size(), rightCount);
+    Mappings.TargetMapping mapping = null;
+    if (originalJoin instanceof SemiJoin) {
+      if (!extraLeftExprs.isEmpty()) {
+        mapping =
+            Mappings.createShiftMapping(
+                leftCount + extraLeftExprs.size(),
+                0, 0, leftCount);
+      }
+    } else {
+      if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
+        mapping =
+            Mappings.createShiftMapping(
+                leftCount + extraLeftExprs.size()
+                    + rightCount + extraRightExprs.size(),
+                0, 0, leftCount,
+                leftCount, leftCount + extraLeftExprs.size(), rightCount);
+      }
+    }
+
+    if (mapping != null) {
       relBuilder.project(relBuilder.fields(mapping.inverse()));
     }
     return relBuilder.build();

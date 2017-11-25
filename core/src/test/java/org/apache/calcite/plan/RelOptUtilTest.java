@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -43,7 +44,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
@@ -201,6 +204,79 @@ public class RelOptUtilTest {
     assertEquals(expFilterNulls, actFilterNulls);
     assertEquals(expLeftKeys, actLeftKeys);
     assertEquals(expRightKeys, actRightKeys);
+  }
+
+  @Test public void testPushDownJoinConditions() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    // Equivalent SQL1:
+    //   SELECT *
+    //   FROM emp e1
+    //   WHERE e1.deptno IN (
+    //    SELECT e2.deptno FROM emp e2 WHERE e1.mgr + 10 = e2.empno * 2)
+    RelNode root1 = builder
+        .scan("EMP").project(builder.field("EMPNO"), builder.field("DEPTNO"), builder.field("MGR"))
+        .scan("EMP").project(builder.field("DEPTNO"), builder.field("EMPNO"))
+        .semiJoin(
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")),
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.call(SqlStdOperatorTable.PLUS,
+                    builder.field(2, 0, "MGR"),
+                    builder.literal(10)),
+            builder.call(SqlStdOperatorTable.MULTIPLY,
+                    builder.field(2, 1, "EMPNO"),
+                    builder.literal(2))))
+        .build();
+    RelNode newJoin1 = RelOptUtil.pushDownJoinConditions((Join) root1);
+
+    // Note:
+    // $f3=[+($2, 10) was added into SemiJoin's left input
+    // $f2=[*($1, 2)] was added into SemiJoin's right input
+    // A new LogicalProject was added as SemiJoin's output
+    final String expected1 = ""
+        + "LogicalProject(EMPNO=[$0], DEPTNO=[$1], MGR=[$2])\n"
+        + "  SemiJoin(condition=[AND(=($1, $4), =($3, $6))], joinType=[inner], isAnti=[false])\n"
+        + "    LogicalProject(EMPNO=[$0], DEPTNO=[$1], MGR=[$2], $f3=[+($2, 10)])\n"
+        + "      LogicalProject(EMPNO=[$0], DEPTNO=[$7], MGR=[$3])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalProject(DEPTNO=[$0], EMPNO=[$1], $f2=[*($1, 2)])\n"
+        + "      LogicalProject(DEPTNO=[$7], EMPNO=[$0])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(Util.toLinux(RelOptUtil.toString(newJoin1)), is(expected1));
+
+    // Equivalent SQL2:
+    //   SELECT *
+    //   FROM emp e1
+    //   WHERE e1.deptno IN (
+    //    SELECT e2.deptno FROM emp e2 WHERE e1.mgr = e2.empno * 2)
+    RelNode root2 = builder
+        .scan("EMP").project(builder.field("EMPNO"), builder.field("DEPTNO"), builder.field("MGR"))
+        .scan("EMP").project(builder.field("DEPTNO"), builder.field("EMPNO"))
+        .semiJoin(
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")),
+                builder.call(SqlStdOperatorTable.EQUALS,
+                        builder.field(2, 0, "MGR"),
+                        builder.call(SqlStdOperatorTable.MULTIPLY,
+                            builder.field(2, 1, "EMPNO"),
+                            builder.literal(2))))
+        .build();
+    RelNode newJoin2 = RelOptUtil.pushDownJoinConditions((Join) root2);
+
+    // Note:
+    // $f3=[+($2, 10) was added into SemiJoin's left input
+    // $f2=[*($1, 2)] was added into SemiJoin's right input
+    // no new LogicalProject was added as SemiJoin's output
+    final String expected2 = ""
+        + "SemiJoin(condition=[AND(=($1, $3), =($2, $5))], joinType=[inner], isAnti=[false])\n"
+        + "  LogicalProject(EMPNO=[$0], DEPTNO=[$7], MGR=[$3])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalProject(DEPTNO=[$0], EMPNO=[$1], $f2=[*($1, 2)])\n"
+        + "    LogicalProject(DEPTNO=[$7], EMPNO=[$0])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(Util.toLinux(RelOptUtil.toString(newJoin2)), is(expected2));
   }
 }
 
