@@ -1040,6 +1040,19 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select * from dept, lateral table(ramp(deptno))").ok();
   }
 
+  @Test public void testTemporal() {
+    final String sql = "select stream * from "
+        + "orders, products_temporal for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).ok();
+  }
+
+  @Test public void testTemporalWithLateral() {
+    final String sql = "select stream * from "
+        + "orders join lateral products_temporal for system_time as of orders.rowtime "
+        + "on orders.productid = products_temporal.productid";
+    sql(sql).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1732">[CALCITE-1732]
    * IndexOutOfBoundsException when using LATERAL TABLE with more than one

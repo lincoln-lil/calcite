@@ -483,7 +483,6 @@ public class SqlParserTest {
       "SUM",                           "92",               "2011", "2014", "c",
       "SYMMETRIC",                           "99", "2003", "2011", "2014", "c",
       "SYSTEM",                              "99", "2003", "2011", "2014", "c",
-      "SYSTEM_TIME",                                               "2014", "c",
       "SYSTEM_USER",                   "92", "99", "2003", "2011", "2014", "c",
       "TABLE",                         "92", "99", "2003", "2011", "2014", "c",
       "TABLESAMPLE",                               "2003", "2011", "2014", "c",
@@ -3188,8 +3187,8 @@ public class SqlParserTest {
 
   @Test public void testLateral() {
     // Bad: LATERAL table
-    sql("select * from ^lateral^ emp")
-        .fails("(?s)Encountered \"lateral emp\" at .*");
+    sql("select * from lateral em^p^")
+        .fails("(?s)Encountered \"<EOF>\" at .*");
     sql("select * from lateral table ^emp^ as e")
         .fails("(?s)Encountered \"emp\" at .*");
 
@@ -8120,6 +8119,24 @@ public class SqlParserTest {
         + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
         + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testTemporal1() {
+    final String sql = "select *\n"
+        + "  from t for system_time as of\n"
+        + "  TIMESTAMP '2011-01-02 00:00:00'";
+    final String expected = "SELECT *\n"
+        + "FROM `T` FOR SYSTEM_TIME AS OF "
+        + "TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testLateralTemporal() {
+    final String sql = "select * from dept, lateral t for system_time as of dept.rowtime";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT`,\n"
+        + "LATERAL `T` FOR SYSTEM_TIME AS OF `DEPT`.`ROWTIME`";
     sql(sql).ok(expected);
   }
 

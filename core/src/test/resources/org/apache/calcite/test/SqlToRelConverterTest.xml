@@ -241,6 +241,36 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTemporal">
+        <Resource name="sql">
+            <![CDATA[select stream * from orders, products_temporal for system_time as of TIMESTAMP '2011-01-02 00:00:00']]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], PRODUCTID0=[$3], NAME=[$4], SUPPLIERID=[$5], SYS_START=[$6], SYS_END=[$7])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+      LogicalTemporalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]], period=[2011-01-02 00:00:00])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTemporalWithLateral">
+        <Resource name="sql">
+            <![CDATA[select stream * from
+orders join lateral products_temporal for system_time as of orders.rowtime
+on orders.productid = products.productid]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], PRODUCTID0=[$3], NAME=[$4], SUPPLIERID=[$5], SYS_START=[$6], SYS_END=[$7])
+    LogicalJoin(condition=[=($1, $3)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+      LogicalTemporalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]], period=[$cor0.ROWTIME])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCollectionTableWithLateral3">
         <Resource name="sql">
             <![CDATA[select * from dept, lateral table(DEDUP(dept.deptno, dept.name))]]>

@@ -45,6 +45,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -59,6 +60,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalTemporalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
@@ -122,6 +124,7 @@ import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlTemporal;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
@@ -2003,6 +2006,10 @@ public class SqlToRelConverter {
       convertIdentifier(bb, id, extendedColumns);
       return;
 
+    case TEMPORAL:
+      convertTemporal(bb, (SqlCall) from);
+      return;
+
     case JOIN:
       final SqlJoin join = (SqlJoin) from;
       final SqlValidatorScope scope = validator.getJoinScope(from);
@@ -2366,6 +2373,24 @@ public class SqlToRelConverter {
       SqlToRelConverter.Blackboard bb,
       SqlCall call,
       LogicalTableFunctionScan callRel) {
+  }
+
+
+  private void convertTemporal(Blackboard bb, SqlCall call) {
+    final SqlTemporal temporal = (SqlTemporal) call;
+    RexNode rexCall = bb.convertExpression(temporal.getPeriod());
+
+    // convert inner query, could be a table name or a derived table
+    SqlNode expr = temporal.getTableRef();
+    convertFrom(bb, expr);
+    final TableScan scan = (TableScan) bb.root;
+
+    LogicalTemporalTableScan temporalRel = LogicalTemporalTableScan.create(
+        cluster,
+        scan.getTable(),
+        rexCall);
+
+    bb.setRoot(temporalRel, true);
   }
 
   private Set<RelColumnMapping> getColumnMappings(SqlOperator op) {

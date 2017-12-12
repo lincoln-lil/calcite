@@ -349,6 +349,17 @@ public class MockCatalogReader extends CalciteCatalogReader {
     productsTable.addColumn("SUPPLIERID", f.intType);
     registerTable(productsTable);
 
+    // Register "PRODUCTS" table.
+    MockTable productsTemporalTable = MockTable.create(this, salesSchema, "PRODUCTS_TEMPORAL",
+        false, 200D);
+    productsTemporalTable.setTemporal(true);
+    productsTemporalTable.addColumn("PRODUCTID", f.intType);
+    productsTemporalTable.addColumn("NAME", f.varchar20Type);
+    productsTemporalTable.addColumn("SUPPLIERID", f.intType);
+    productsTemporalTable.addColumn("SYS_START", f.timestampType);
+    productsTemporalTable.addColumn("SYS_END", f.timestampType);
+    registerTable(productsTemporalTable);
+
     // Register "SUPPLIERS" table.
     MockTable suppliersTable = MockTable.create(this, salesSchema, "SUPPLIERS",
         false, 10D);
@@ -742,6 +753,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     protected final Set<String> monotonicColumnSet = new HashSet<>();
     protected StructKind kind = StructKind.FULLY_QUALIFIED;
     protected final ColumnResolver resolver;
+    private boolean temporal;
     protected final InitializerExpressionFactory initializerFactory;
     protected final Set<String> rolledUpColumns = new HashSet<>();
 
@@ -973,6 +985,14 @@ public class MockCatalogReader extends CalciteCatalogReader {
     public void addMonotonic(String name) {
       monotonicColumnSet.add(name);
       assert Pair.left(columnList).contains(name);
+    }
+
+    @Override public boolean isTemporalTable() {
+      return temporal;
+    }
+
+    public void setTemporal(boolean temporal) {
+      this.temporal = temporal;
     }
 
     public void setKind(StructKind kind) {

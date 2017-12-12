@@ -72,6 +72,7 @@ import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlTemporal;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
@@ -953,6 +954,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         node,
         ns.getTable(),
         SqlAccessEnum.SELECT);
+
+    if (node.getKind() == SqlKind.TEMPORAL) {
+      SqlTemporal temporal = (SqlTemporal) node;
+      SqlNode period = temporal.getPeriod();
+      RelDataType dataType = deriveType(scope, period);
+      if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
+        throw newValidationError(period,
+            Static.RESOURCE.illegalExpressionForTemporal(dataType.getSqlTypeName().getName()));
+      }
+      if (!ns.getTable().isTemporalTable()) {
+        List<String> qualifiedName = ns.getTable().getQualifiedName();
+        String tableName = qualifiedName.get(qualifiedName.size() - 1);
+        throw newValidationError(temporal.getTableRef(),
+            Static.RESOURCE.notTemporalTable(tableName));
+      }
+    }
   }
 
   /**
@@ -1074,6 +1091,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return ns;
       }
       // fall through
+    case TEMPORAL:
     case OVER:
     case COLLECTION_TABLE:
     case ORDER_BY:
@@ -2254,6 +2272,23 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           forceNullable,
           lateral);
 
+    case TEMPORAL:
+      call = (SqlCall) node;
+      operand = call.operand(0);
+      newOperand = registerFrom(
+          tableScope == null ? parentScope : tableScope,
+          usingScope,
+          operand,
+          enclosingNode,
+          alias,
+          extendList,
+          forceNullable);
+      if (newOperand != operand) {
+        call.setOperand(0, newOperand);
+      }
+      scopes.put(node, parentScope);
+      return newNode;
+
     default:
       throw Util.unexpected(kind);
     }
@@ -3025,6 +3060,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case OVER:
       validateOver((SqlCall) node, scope);
       break;
+//    case TEMPORAL:
+//      validateTemporal((SqlCall) node, scope);
+//      break;
     default:
       validateQuery(node, scope, targetRowType);
       break;
