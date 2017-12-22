@@ -2259,9 +2259,11 @@ public class SqlToRelConverter {
       definitionNodes.put(alias, rex);
     }
 
+    RexNode rowsPerMatchNode = null;
     final SqlLiteral rowsPerMatch = matchRecognize.getRowsPerMatch();
-    final boolean allRows = rowsPerMatch != null
-        && rowsPerMatch.getValue() == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS;
+    if (rowsPerMatch != null) {
+      rowsPerMatchNode = matchBb.convertLiteral(rowsPerMatch);
+    }
 
     matchBb.setPatternVarRef(false);
 
@@ -2272,7 +2274,7 @@ public class SqlToRelConverter {
             rowType, matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(), measureNodes.build(), after,
-            subsetMap, allRows, partitionKeys, orders, intervalNode);
+            subsetMap, rowsPerMatchNode, partitionKeys, orders, intervalNode);
     bb.setRoot(rel, false);
   }
 

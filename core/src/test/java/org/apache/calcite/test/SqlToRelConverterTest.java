@@ -2848,6 +2848,36 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(tester).ok();
   }
 
+  @Test public void testMatchRecognizeRowsPerMatch1() {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "    partition by job, sal\n"
+        + "    order by job asc, sal desc, empno"
+        + "    one row per match with timeout rows\n"
+        + "    pattern (strt -> down+ up+)\n"
+        + "    define\n"
+        + "      down as down.mgr < PREV(down.mgr),\n"
+        + "      up as up.mgr > prev(up.mgr)\n"
+        + "  ) mr";
+    sql(sql).ok();
+  }
+
+  @Test public void testMatchRecognizeRowsPerMatch2() {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "    partition by job, sal\n"
+        + "    order by job asc, sal desc, empno\n"
+        + "    all rows per match with timeout rows\n"
+        + "    pattern (strt -> down+ up+)\n"
+        + "    define\n"
+        + "      down as down.mgr < PREV(down.mgr),\n"
+        + "      up as up.mgr > prev(up.mgr)\n"
+        + "  ) mr";
+    sql(sql).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *

@@ -2442,6 +2442,76 @@ public class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testMatchRecognizeRowsPerMatch3() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.\"net_weight\" as start_nw,"
+        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
+        + "   SUM(STDN.\"net_weight\") as avg_stdn"
+        + "    ONE ROW PER MATCH WITH TIMEOUT ROWS\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
+        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
+        + "FINAL SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
+        + "ONE ROW PER MATCH WITH TIMEOUT ROWS\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeRowsPerMatch4() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.\"net_weight\" as start_nw,"
+        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
+        + "   SUM(STDN.\"net_weight\") as avg_stdn"
+        + "    ALL ROWS PER MATCH WITH TIMEOUT ROWS\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "RUNNING \"STRT\".\"net_weight\" AS \"START_NW\", "
+        + "RUNNING LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
+        + "RUNNING SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
+        + "ALL ROWS PER MATCH WITH TIMEOUT ROWS\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testMatchRecognizeWithin() {
     final String sql = "select *\n"
         + "  from \"employee\" match_recognize\n"

@@ -4906,8 +4906,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // rows per match
     final SqlLiteral rowsPerMatch = matchRecognize.getRowsPerMatch();
     final boolean allRows = rowsPerMatch != null
-        && rowsPerMatch.getValue()
-        == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS;
+        && (rowsPerMatch.getValue()
+            == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS
+          || rowsPerMatch.getValue()
+            == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS_WITH_TIMEOUT);
 
     final RelDataTypeFactory.Builder typeBuilder = typeFactory.builder();
 

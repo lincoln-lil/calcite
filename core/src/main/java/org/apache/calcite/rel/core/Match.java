@@ -60,7 +60,7 @@ public abstract class Match extends SingleRel {
   protected final RexNode pattern;
   protected final boolean strictStart;
   protected final boolean strictEnd;
-  protected final boolean allRows;
+  protected final RexNode rowsPerMatch;
   protected final RexNode after;
   protected final ImmutableMap<String, RexNode> patternDefinitions;
   protected final Set<RexMRAggCall> aggregateCalls;
@@ -86,7 +86,7 @@ public abstract class Match extends SingleRel {
    * @param measures Measure definitions
    * @param after After match definitions
    * @param subsets Subsets of pattern variables
-   * @param allRows Whether all rows per match (false means one row per match)
+   * @param rowsPerMatch Rows per match definition
    * @param partitionKeys Partition by columns
    * @param orderKeys Order by columns
    * @param interval Interval definition, null if WITHIN clause is not defined
@@ -96,7 +96,7 @@ public abstract class Match extends SingleRel {
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      RexNode rowsPerMatch, List<RexNode> partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     super(cluster, traitSet, input);
     this.rowType = Objects.requireNonNull(rowType);
@@ -108,7 +108,7 @@ public abstract class Match extends SingleRel {
     this.measures = ImmutableMap.copyOf(measures);
     this.after = Objects.requireNonNull(after);
     this.subsets = copyMap(subsets);
-    this.allRows = allRows;
+    this.rowsPerMatch = rowsPerMatch;
     this.partitionKeys = ImmutableList.copyOf(partitionKeys);
     this.orderKeys = Objects.requireNonNull(orderKeys);
     this.interval = interval;
@@ -165,8 +165,8 @@ public abstract class Match extends SingleRel {
     return strictEnd;
   }
 
-  public boolean isAllRows() {
-    return allRows;
+  public RexNode getRowsPerMatch() {
+    return rowsPerMatch;
   }
 
   public ImmutableMap<String, RexNode> getPatternDefinitions() {
@@ -193,7 +193,7 @@ public abstract class Match extends SingleRel {
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      RexNode rowsPerMatch, List<RexNode> partitionKeys, RelCollation orderKeys,
       RexNode interval);
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -203,7 +203,7 @@ public abstract class Match extends SingleRel {
     }
 
     return copy(inputs.get(0), rowType, pattern, strictStart, strictEnd,
-        patternDefinitions, measures, after, subsets, allRows,
+        patternDefinitions, measures, after, subsets, rowsPerMatch,
         partitionKeys, orderKeys, interval);
   }
 
@@ -212,7 +212,7 @@ public abstract class Match extends SingleRel {
         .item("partition", getPartitionKeys())
         .item("order", getOrderKeys())
         .item("outputFields", getRowType().getFieldNames())
-        .item("allRows", isAllRows())
+        .item("rowsPerMatch", getRowsPerMatch())
         .item("after", getAfter())
         .item("pattern", getPattern())
         .item("isStrictStarts", isStrictStart())

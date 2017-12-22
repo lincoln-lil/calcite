@@ -50,7 +50,7 @@ public class LogicalMatch extends Match {
    * @param measures Measure definitions
    * @param after After match definitions
    * @param subsets Subset definitions
-   * @param allRows Whether all rows per match (false means one row per match)
+   * @param rowsPerMatch Rows per match definition
    * @param partitionKeys Partition by columns
    * @param orderKeys Order by columns
    * @param interval Interval definition, null if WITHIN clause is not defined
@@ -60,10 +60,10 @@ public class LogicalMatch extends Match {
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      RexNode rowsPerMatch, List<RexNode> partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
-        patternDefinitions, measures, after, subsets, allRows, partitionKeys,
+        patternDefinitions, measures, after, subsets, rowsPerMatch, partitionKeys,
         orderKeys, interval);
   }
 
@@ -73,13 +73,13 @@ public class LogicalMatch extends Match {
   public static LogicalMatch create(RelNode input, RelDataType rowType,
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
+      RexNode after, Map<String, ? extends SortedSet<String>> subsets, RexNode rowsPerMatch,
       List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalMatch(cluster, traitSet, input, rowType, pattern,
         strictStart, strictEnd, patternDefinitions, measures, after, subsets,
-        allRows, partitionKeys, orderKeys, interval);
+        rowsPerMatch, partitionKeys, orderKeys, interval);
   }
 
   //~ Methods ------------------------------------------------------
@@ -88,14 +88,14 @@ public class LogicalMatch extends Match {
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      RexNode rowsPerMatch, List<RexNode> partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     final RelTraitSet traitSet = getCluster().traitSetOf(Convention.NONE);
     return new LogicalMatch(getCluster(), traitSet,
         input,
         rowType,
         pattern, strictStart, strictEnd, patternDefinitions, measures,
-        after, subsets, allRows, partitionKeys, orderKeys,
+        after, subsets, rowsPerMatch, partitionKeys, orderKeys,
         interval);
   }
 

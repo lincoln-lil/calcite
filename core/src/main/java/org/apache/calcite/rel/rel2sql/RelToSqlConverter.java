@@ -460,9 +460,13 @@ public class RelToSqlConverter extends SqlImplementor
     }
     final SqlNodeList orderByList = new SqlNodeList(orderBySqlList, SqlParserPos.ZERO);
 
-    final SqlLiteral rowsPerMatch = e.isAllRows()
-        ? SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS.symbol(POS)
-        : SqlMatchRecognize.RowsPerMatchOption.ONE_ROW.symbol(POS);
+    SqlMatchRecognize.RowsPerMatchOption rowsPerMatchValue =
+        SqlMatchRecognize.RowsPerMatchOption.ONE_ROW;
+    if (e.getRowsPerMatch() != null) {
+      rowsPerMatchValue = (SqlMatchRecognize.RowsPerMatchOption)
+          ((RexLiteral) e.getRowsPerMatch()).getValue2();
+    }
+    final SqlLiteral rowsPerMatch = SqlLiteral.createSymbol(rowsPerMatchValue, POS);
 
     final SqlNode after;
     if (e.getAfter() instanceof RexLiteral) {

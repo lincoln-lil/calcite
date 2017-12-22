@@ -216,7 +216,9 @@ public class SqlMatchRecognize extends SqlCall {
    */
   public enum RowsPerMatchOption {
     ONE_ROW("ONE ROW PER MATCH"),
-    ALL_ROWS("ALL ROWS PER MATCH");
+    ALL_ROWS("ALL ROWS PER MATCH"),
+    ONE_ROW_WITH_TIMEOUT("ONE ROW PER MATCH WITH TIMEOUT ROWS"),
+    ALL_ROWS_WITH_TIMEOUT("ALL ROWS PER MATCH WITH TIMEOUT ROWS");
 
     private final String sql;
 

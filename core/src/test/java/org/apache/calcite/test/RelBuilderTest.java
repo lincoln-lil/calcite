@@ -2031,14 +2031,17 @@ public class RelBuilderTest {
 
     RexNode interval = builder.literal("INTERVAL '5' SECOND");
 
+    RexNode rowsPerMatch = builder.literal("ONE ROW PER MATCH WITH TIMEOUT ROWS");
+
     final ImmutableMap<String, TreeSet<String>> subsets = ImmutableMap.of();
     final RelNode root = builder
         .match(pattern, false, false, pdBuilder.build(),
-            measuresBuilder.build(), after, subsets, false,
+            measuresBuilder.build(), after, subsets, rowsPerMatch,
             partitionKeysBuilder.build(), orderKeysBuilder.build(), interval)
         .build();
     final String expected = "LogicalMatch(partition=[[$7]], order=[[0]], "
-        + "outputFields=[[$7, 'start_nw', 'bottom_nw']], allRows=[false], "
+        + "outputFields=[[$7, 'start_nw', 'bottom_nw']], "
+        + "rowsPerMatch=['ONE ROW PER MATCH WITH TIMEOUT ROWS'], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', "
         + "PATTERN_QUANTIFIER('DOWN', 1, -1, false)), "
         + "PATTERN_QUANTIFIER('UP', 1, -1, false))], "

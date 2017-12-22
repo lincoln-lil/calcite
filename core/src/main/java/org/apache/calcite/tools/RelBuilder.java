@@ -67,6 +67,7 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -1882,7 +1883,7 @@ public class RelBuilder {
   public RelBuilder match(RexNode pattern, boolean strictStart,
       boolean strictEnd, Map<String, RexNode> patternDefinitions,
       Iterable<? extends RexNode> measureList, RexNode after,
-      Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
+      Map<String, ? extends SortedSet<String>> subsets, RexNode rowsPerMatch,
       Iterable<? extends RexNode> partitionKeys,
       Iterable<? extends RexNode> orderKeys, RexNode interval) {
     final List<RelFieldCollation> fieldCollations = new ArrayList<>();
@@ -1911,6 +1912,12 @@ public class RelBuilder {
     for (RexNode partitionKey : partitionKeys) {
       typeBuilder.add(partitionKey.toString(), partitionKey.getType());
     }
+
+    final boolean allRows = rowsPerMatch != null
+        && (((RexLiteral) rowsPerMatch).getValue()
+          == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS
+        || ((RexLiteral) rowsPerMatch).getValue()
+          == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS_WITH_TIMEOUT);
     if (allRows) {
       for (RexNode orderKey : orderKeys) {
         if (!typeBuilder.nameExists(orderKey.toString())) {
@@ -1936,7 +1943,7 @@ public class RelBuilder {
 
     final RelNode match = matchFactory.createMatch(peek(), pattern,
         typeBuilder.build(), strictStart, strictEnd, patternDefinitions,
-        measures.build(), after, subsets, allRows,
+        measures.build(), after, subsets, rowsPerMatch,
         ImmutableList.copyOf(partitionKeys), RelCollations.of(fieldCollations),
         interval);
     stack.push(new Frame(match));

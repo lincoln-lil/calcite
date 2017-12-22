@@ -2572,13 +2572,30 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
         measureList = MeasureColumnCommaList(span())
     ]
     (
-        <ONE> { s0 = span(); } <ROW> <PER> <MATCH> {
-            rowsPerMatch = SqlMatchRecognize.RowsPerMatchOption.ONE_ROW.symbol(s0.end(this));
-        }
+        <ONE> { s0 = span(); } <ROW> <PER> <MATCH>
+        (
+            <WITH> <TIMEOUT> <ROWS> {
+                rowsPerMatch = SqlMatchRecognize.RowsPerMatchOption.ONE_ROW_WITH_TIMEOUT.symbol(
+                    s0.end(this));
+            }
+        |
+            {
+                rowsPerMatch = SqlMatchRecognize.RowsPerMatchOption.ONE_ROW.symbol(
+                    s0.end(this));
+            }
+        )
     |
-        <ALL> { s0 = span(); } <ROWS> <PER> <MATCH> {
-            rowsPerMatch = SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS.symbol(s0.end(this));
-        }
+        <ALL> { s0 = span(); } <ROWS> <PER> <MATCH>
+        (
+            <WITH> <TIMEOUT> <ROWS> {
+                rowsPerMatch = SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS_WITH_TIMEOUT.symbol(
+                    s0.end(this));
+            }
+        |
+            {
+                rowsPerMatch = SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS.symbol(s0.end(this));
+            }
+        )
     |
         {
             rowsPerMatch = null;
@@ -6072,6 +6089,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < THEN: "THEN" >
 |   < TIES: "TIES" >
 |   < TIME: "TIME" >
+|   < TIMEOUT: "TIMEOUT" >
 |   < TIMESTAMP: "TIMESTAMP" >
 |   < TIMESTAMPADD: "TIMESTAMPADD" >
 |   < TIMESTAMPDIFF: "TIMESTAMPDIFF" >
