@@ -2540,6 +2540,34 @@ public class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testMatchRecognizeWithin2() {
+    final String sql = "select *\n"
+        + "  from \"employee\" match_recognize\n"
+        + "  (\n"
+        + "   order by \"hire_date\"\n"
+        + "   ALL ROWS PER MATCH\n"
+        + "   pattern (strt down+ up+) within interval strt.\"employee_id\" + 1\n"
+        + "   define\n"
+        + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
+        + "     up as up.\"salary\" > prev(up.\"salary\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"employee\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "ORDER BY \"hire_date\"\n"
+        + "ALL ROWS PER MATCH\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL \"STRT\".\"employee_id\" + 1\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"salary\", 0) < "
+        + "PREV(\"DOWN\".\"salary\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"salary\", 0) > "
+        + "PREV(\"UP\".\"salary\", 1))";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testValues() {
     final String sql = "select \"a\"\n"
         + "from (values (1, 'x'), (2, 'yy')) as t(\"a\", \"b\")";

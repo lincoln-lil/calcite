@@ -48,7 +48,6 @@ import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
-import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
@@ -484,10 +483,10 @@ public class RelToSqlConverter extends SqlImplementor
     final SqlLiteral strictStart = SqlLiteral.createBoolean(e.isStrictStart(), POS);
     final SqlLiteral strictEnd = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
 
-    RexLiteral rexInterval = (RexLiteral) e.getInterval();
-    SqlIntervalLiteral interval = null;
+    RexNode rexInterval = e.getInterval();
+    SqlNode interval = null;
     if (rexInterval != null) {
-      interval = (SqlIntervalLiteral) context.toSql(null, rexInterval);
+      interval = context.toSql(null, rexInterval);
     }
 
     final SqlNodeList subsetList = new SqlNodeList(POS);

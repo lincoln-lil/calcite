@@ -4963,16 +4963,33 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     PatternVarVisitor visitor = new PatternVarVisitor(scope);
     pattern.accept(visitor);
 
-    SqlLiteral interval = matchRecognize.getInterval();
+    SqlNode interval = matchRecognize.getInterval();
     if (interval != null) {
       interval.validate(this, scope);
-      if (((SqlIntervalLiteral) interval).signum() < 0) {
+      if (interval instanceof SqlIntervalLiteral
+          && ((SqlIntervalLiteral) interval).signum() < 0) {
         throw newValidationError(interval,
-          RESOURCE.intervalMustBeNonNegative(interval.toValue()));
+          RESOURCE.intervalMustBeNonNegative(((SqlIntervalLiteral) interval).toValue()));
       }
       if (orderBy == null || orderBy.size() == 0) {
         throw newValidationError(interval,
           RESOURCE.cannotUseWithinWithoutOrderBy());
+      }
+
+      if (interval instanceof SqlCall) {
+        SqlNode expand = expand(interval, scope);
+        setOriginal(expand, interval);
+
+        inferUnknownTypes(unknownType, scope, expand);
+        final RelDataType type = deriveType(scope, expand);
+        setValidatedNodeType(interval, type);
+
+        if (type.getSqlTypeName() != SqlTypeName.TINYINT
+            && type.getSqlTypeName() != SqlTypeName.SMALLINT
+            && type.getSqlTypeName() != SqlTypeName.INTEGER
+            && type.getSqlTypeName() != SqlTypeName.BIGINT) {
+          throw newValidationError(interval, RESOURCE.intervalMustBeNumeric());
+        }
       }
 
       SqlNode firstOrderByColumn = orderBy.getList().get(0);

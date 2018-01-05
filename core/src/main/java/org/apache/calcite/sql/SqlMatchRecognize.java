@@ -67,14 +67,14 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlLiteral rowsPerMatch;
   private SqlNodeList partitionList;
   private SqlNodeList orderList;
-  private SqlLiteral interval;
+  private SqlNode interval;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
       SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
       SqlNodeList measureList, SqlNode after, SqlNodeList subsetList,
       SqlLiteral rowsPerMatch, SqlNodeList partitionList,
-      SqlNodeList orderList, SqlLiteral interval) {
+      SqlNodeList orderList, SqlNode interval) {
     super(pos);
     this.tableRef = Objects.requireNonNull(tableRef);
     this.pattern = Objects.requireNonNull(pattern);
@@ -207,7 +207,7 @@ public class SqlMatchRecognize extends SqlCall {
     return orderList;
   }
 
-  public SqlLiteral getInterval() {
+  public SqlNode getInterval() {
     return interval;
   }
 
@@ -377,6 +377,9 @@ public class SqlMatchRecognize extends SqlCall {
       writer.endList(patternFrame);
       if (pattern.interval != null) {
         writer.sep("WITHIN");
+        if (pattern.interval instanceof SqlCall) {
+          writer.sep("INTERVAL");
+        }
         pattern.interval.unparse(writer, 0, 0);
       }
 

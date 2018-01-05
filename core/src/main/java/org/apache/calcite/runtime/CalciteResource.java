@@ -719,6 +719,9 @@ public interface CalciteResource {
   @BaseMessage("Interval must be non-negative ''{0}''")
   ExInst<SqlValidatorException> intervalMustBeNonNegative(String call);
 
+  @BaseMessage("Interval must be of type TINYINT, SMALLINT, INTEGER or BIGINT")
+  ExInst<SqlValidatorException> intervalMustBeNumeric();
+
   @BaseMessage("Must contain an ORDER BY clause when WITHIN is used")
   ExInst<SqlValidatorException> cannotUseWithinWithoutOrderBy();
 
