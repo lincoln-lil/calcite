@@ -64,7 +64,7 @@ public class RelMdColumnUniqueness
 
   //~ Constructors -----------------------------------------------------------
 
-  private RelMdColumnUniqueness() {}
+  protected RelMdColumnUniqueness() {}
 
   //~ Methods ----------------------------------------------------------------
 

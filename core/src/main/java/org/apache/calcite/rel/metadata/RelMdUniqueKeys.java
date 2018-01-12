@@ -51,7 +51,7 @@ public class RelMdUniqueKeys
 
   //~ Constructors -----------------------------------------------------------
 
-  private RelMdUniqueKeys() {}
+  protected RelMdUniqueKeys() {}
 
   //~ Methods ----------------------------------------------------------------
 
