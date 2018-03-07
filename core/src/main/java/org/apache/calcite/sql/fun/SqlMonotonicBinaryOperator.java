@@ -74,7 +74,7 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
         return mono0;
       }
       assert getName().equals("*");
-      switch (call.getOperandLiteralValue(1, BigDecimal.class).signum()) {
+      switch (signum(call.getOperandLiteralValue(1, BigDecimal.class))) {
       case -1:
         // mono0 * negative constant --> reverse mono0
         return mono0.reverse();
