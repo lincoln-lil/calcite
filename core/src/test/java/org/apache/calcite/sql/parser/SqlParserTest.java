@@ -154,6 +154,7 @@ public class SqlParserTest {
       "COLLECT",                                           "2011", "2014", "c",
       "COLUMN",                        "92", "99", "2003", "2011", "2014", "c",
       "COMMIT",                        "92", "99", "2003", "2011", "2014", "c",
+      "COMPLETE",                                                          "c",
       "CONDITION",                     "92", "99", "2003", "2011", "2014", "c",
       "CONNECT",                       "92", "99", "2003", "2011", "2014", "c",
       "CONNECTION",                    "92", "99",
@@ -198,6 +199,7 @@ public class SqlParserTest {
       "DEFERRABLE",                    "92", "99",
       "DEFERRED",                      "92", "99",
       "DEFINE",                                                    "2014", "c",
+      "DELAY",                                                             "c",
       "DELETE",                        "92", "99", "2003", "2011", "2014", "c",
       "DENSE_RANK",                                        "2011", "2014", "c",
       "DEPTH",                               "99",
@@ -219,6 +221,7 @@ public class SqlParserTest {
       "ELEMENT",                                   "2003", "2011", "2014", "c",
       "ELSE",                          "92", "99", "2003", "2011", "2014", "c",
       "ELSEIF",                        "92", "99", "2003",
+      "EMIT",                                                              "c",
       "EMPTY",                                                     "2014", "c",
       "END",                           "92", "99", "2003", "2011", "2014", "c",
       "END-EXEC",                                          "2011", "2014", "c",
@@ -3393,6 +3396,59 @@ public class SqlParserTest {
     sql("insert into emps select * from emps")
         .ok(expected)
         .node(not(isDdl()));
+  }
+
+  @Test public void testInsertWithEmit() {
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)\n"
+        + "EMIT\n"
+        + "WITH DELAY '1' MINUTE BEFORE COMPLETE,\n"
+        + "WITHOUT DELAY AFTER COMPLETE";
+    sql("insert into emps select * from emps\n"
+        + "emit with delay '1' minute before complete,\n"
+        + "without delay after complete")
+        .ok(expected)
+        .node(not(isDdl()));
+  }
+
+  @Test public void testInsertWithEmit2() {
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)\n"
+        + "EMIT\n"
+        + "WITH DELAY '1' MINUTE AFTER COMPLETE";
+    sql("insert into emps select * from emps\n"
+        + "emit with delay '1' minute after complete")
+        .ok(expected)
+        .node(not(isDdl()));
+  }
+
+  @Test public void testInsertWithEmit3() {
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)\n"
+        + "EMIT\n"
+        + "WITHOUT DELAY BEFORE COMPLETE";
+    sql("insert into emps select * from emps\n"
+        + "emit without delay before complete")
+        .ok(expected)
+        .node(not(isDdl()));
+  }
+
+  @Test public void testInsertUnionWithEmit() {
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS1`\n"
+        + "UNION\n"
+        + "SELECT *\n"
+        + "FROM `EMPS2`)\n"
+        + "EMIT\n"
+        + "WITHOUT DELAY BEFORE COMPLETE,\n"
+        + "WITH DELAY '30' SECOND AFTER COMPLETE";
+    sql("insert into emps select * from emps1 union select * from emps2\n"
+        + "emit with delay '30' second after complete, without delay before complete")
+        .ok(expected);
   }
 
   @Test public void testInsertUnion() {

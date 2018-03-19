@@ -148,6 +148,11 @@ public enum SqlKind {
   UPDATE,
 
   /**
+   * EMIT statement
+   */
+  EMIT,
+
+  /**
    * "ALTER scope SET option = value" statement.
    */
   SET_OPTION,

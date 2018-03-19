@@ -35,6 +35,7 @@ public class SqlInsert extends SqlCall {
   SqlNode targetTable;
   SqlNode source;
   SqlNodeList columnList;
+  SqlEmit emit;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -48,6 +49,22 @@ public class SqlInsert extends SqlCall {
     this.targetTable = targetTable;
     this.source = source;
     this.columnList = columnList;
+    this.emit = null;
+    assert keywords != null;
+  }
+
+  public SqlInsert(SqlParserPos pos,
+      SqlNodeList keywords,
+      SqlNode targetTable,
+      SqlNode source,
+      SqlNodeList columnList,
+      SqlEmit emit) {
+    super(pos);
+    this.keywords = keywords;
+    this.targetTable = targetTable;
+    this.source = source;
+    this.columnList = columnList;
+    this.emit = emit;
     assert keywords != null;
   }
 
@@ -120,6 +137,10 @@ public class SqlInsert extends SqlCall {
     return columnList;
   }
 
+  public SqlEmit getEmit() {
+    return emit;
+  }
+
   public final SqlNode getModifierNode(SqlInsertKeyword modifier) {
     for (SqlNode keyword : keywords) {
       SqlInsertKeyword keyword2 =
@@ -142,6 +163,9 @@ public class SqlInsert extends SqlCall {
     }
     writer.newlineAndIndent();
     source.unparse(writer, 0, 0);
+    if (emit != null) {
+      emit.unparse(writer, 0, 0);
+    }
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {

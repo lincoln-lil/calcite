@@ -51,6 +51,7 @@ import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDescribeSchema;
 import org.apache.calcite.sql.SqlDescribeTable;
 import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlEmit;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -1296,6 +1297,7 @@ SqlNode SqlInsert() :
     SqlNode source;
     SqlNodeList columnList = null;
     final Span s;
+    SqlEmit emit = null;
 }
 {
     (
@@ -1327,10 +1329,73 @@ SqlNode SqlInsert() :
             }
         }
     ]
-    source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) {
-        return new SqlInsert(s.end(source), keywordList, table, source,
-            columnList);
+    source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+    [
+        emit = EmitSpecification()
+    ]
+    {
+      return new SqlInsert(s.end(source), keywordList, table, source,
+          columnList, emit);
     }
+}
+
+/**
+ * Parses an Emit statement.
+ */
+SqlEmit EmitSpecification() :
+{
+    final Span s;
+    final List<SqlNode> strategies = Lists.newArrayList();
+    SqlNode strategy;
+}
+{
+    <EMIT> { s = span(); }
+    strategy = SqlEmitStrategy() {
+        strategies.add(strategy);
+    }
+    (
+        <COMMA> strategy = SqlEmitStrategy() {
+            strategies.add(strategy);
+        }
+    )*
+    {
+        return SqlEmit.create(s.end(this), strategies);
+    }
+}
+
+/**
+ * Parses an Emit strategy statement.
+ */
+SqlNode SqlEmitStrategy() :
+{
+    String p;
+    SqlIntervalQualifier intervalQualifier;
+    SqlNode delay;
+    Span s;
+}
+{
+    (
+      <WITH> <DELAY> { s = span(); }
+      <QUOTED_STRING> { p = token.image; }
+      intervalQualifier = IntervalQualifier() {
+         delay = SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
+             1, p, intervalQualifier);
+      }
+    |
+      <WITHOUT> <DELAY>
+      {
+          delay = SqlEmit.createWithoutDelay(getPos());
+      }
+    )
+    (
+      <BEFORE> <COMPLETE> {
+          return SqlEmit.createBeforeStrategy(delay, getPos());
+      }
+    |
+      <AFTER> <COMPLETE> {
+          return SqlEmit.createAfterStrategy(delay, getPos());
+      }
+    )
 }
 
 /*
@@ -5620,6 +5685,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < COMMAND_FUNCTION_CODE: "COMMAND_FUNCTION_CODE" >
 |   < COMMIT: "COMMIT" >
 |   < COMMITTED: "COMMITTED" >
+|   < COMPLETE: "COMPLETE" >
 |   < CONDITION: "CONDITION" >
 |   < CONDITION_NUMBER: "CONDITION_NUMBER" >
 |   < CONNECT: "CONNECT" >
@@ -5677,6 +5743,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DEFINED: "DEFINED" >
 |   < DEFINER: "DEFINER" >
 |   < DEGREE: "DEGREE" >
+|   < DELAY: "DELAY" >
 |   < DELETE: "DELETE" >
 |   < DENSE_RANK: "DENSE_RANK" >
 |   < DEPTH: "DEPTH" >
@@ -5703,6 +5770,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < EACH: "EACH" >
 |   < ELEMENT: "ELEMENT" >
 |   < ELSE: "ELSE" >
+|   < EMIT: "EMIT" >
 |   < EMPTY: "EMPTY" >
 |   < END: "END" >
 |   < END_EXEC: "END-EXEC" >
