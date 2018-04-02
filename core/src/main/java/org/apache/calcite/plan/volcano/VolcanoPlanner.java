@@ -858,9 +858,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
     final RelSubset subset = registerImpl(rel, set);
 
-    if (LOGGER.isDebugEnabled()) {
-      validate();
-    }
+    // FIXME https://aone.alibaba-inc.com/task/14681173
+    // if (LOGGER.isDebugEnabled()) {
+    //  validate();
+    // }
 
     return subset;
   }

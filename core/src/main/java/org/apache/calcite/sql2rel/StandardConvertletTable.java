@@ -1108,7 +1108,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final SqlNode sumCast;
       if (!sumRex.getType().equals(avgType)) {
         sumCast = SqlStdOperatorTable.CAST.createCall(pos,
-            new SqlDataTypeSpec(
+                sum,
+                new SqlDataTypeSpec(
                 new SqlIdentifier(avgType.getSqlTypeName().getName(), pos),
                 avgType.getPrecision(), avgType.getScale(), null, null, pos));
       } else {
@@ -1151,7 +1152,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final SqlNode arg;
       if (!argRex.getType().equals(varType)) {
         arg = SqlStdOperatorTable.CAST.createCall(pos,
-            new SqlDataTypeSpec(new SqlIdentifier(varType.getSqlTypeName().getName(), pos),
+                argInput,
+                new SqlDataTypeSpec(new SqlIdentifier(varType.getSqlTypeName().getName(), pos),
                 varType.getPrecision(), varType.getScale(), null, null, pos));
       } else {
         arg = argInput;
