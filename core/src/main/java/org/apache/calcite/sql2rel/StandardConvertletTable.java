@@ -1099,6 +1099,16 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return cx.getRexBuilder().ensureType(type, rex, true);
     }
 
+    private static int getPrecision(RelDataType type) {
+      SqlTypeName tn = type.getSqlTypeName();
+      return tn.allowsPrec() ? type.getPrecision() : RelDataType.PRECISION_NOT_SPECIFIED;
+    }
+
+    private static int getScale(RelDataType type) {
+      SqlTypeName tn = type.getSqlTypeName();
+      return tn.allowsScale() ? type.getScale() : RelDataType.SCALE_NOT_SPECIFIED;
+    }
+
     private SqlNode expandAvg(
         final SqlNode arg, final RelDataType avgType, final SqlRexContext cx) {
       final SqlParserPos pos = SqlParserPos.ZERO;
@@ -1111,7 +1121,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 sum,
                 new SqlDataTypeSpec(
                 new SqlIdentifier(avgType.getSqlTypeName().getName(), pos),
-                avgType.getPrecision(), avgType.getScale(), null, null, pos));
+                getPrecision(avgType), getScale(avgType), null, null, pos));
       } else {
         sumCast = sum;
       }
@@ -1154,7 +1164,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         arg = SqlStdOperatorTable.CAST.createCall(pos,
                 argInput,
                 new SqlDataTypeSpec(new SqlIdentifier(varType.getSqlTypeName().getName(), pos),
-                varType.getPrecision(), varType.getScale(), null, null, pos));
+                getPrecision(varType), getScale(varType), null, null, pos));
       } else {
         arg = argInput;
       }
