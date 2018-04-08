@@ -53,18 +53,22 @@ public abstract class JoinInfo {
 
   /** Creates a {@code JoinInfo} by analyzing a condition. */
   public static JoinInfo of(RelNode left, RelNode right, RexNode condition) {
+    return of(left, right, condition, new ArrayList<Boolean>());
+  }
+
+  public static JoinInfo of(
+          RelNode left, RelNode right, RexNode condition, List<Boolean> filterNulls) {
     final List<Integer> leftKeys = new ArrayList<Integer>();
     final List<Integer> rightKeys = new ArrayList<Integer>();
-    final List<Boolean> filterNulls = new ArrayList<Boolean>();
     RexNode remaining =
-        RelOptUtil.splitJoinCondition(left, right, condition, leftKeys,
-            rightKeys, filterNulls);
+            RelOptUtil.splitJoinCondition(left, right, condition, leftKeys,
+                    rightKeys, filterNulls);
     if (remaining.isAlwaysTrue()) {
       return new EquiJoinInfo(ImmutableIntList.copyOf(leftKeys),
-          ImmutableIntList.copyOf(rightKeys));
+              ImmutableIntList.copyOf(rightKeys));
     } else {
       return new NonEquiJoinInfo(ImmutableIntList.copyOf(leftKeys),
-          ImmutableIntList.copyOf(rightKeys), remaining);
+              ImmutableIntList.copyOf(rightKeys), remaining);
     }
   }
 
