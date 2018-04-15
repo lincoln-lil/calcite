@@ -129,7 +129,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
     return arguments;
   }
 
-  private static Object getValue(SqlNode right) throws NonLiteralException {
+  public static Object getValue(SqlNode right) throws NonLiteralException {
     switch (right.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:
       final List<Object> list = new ArrayList<>();
@@ -161,7 +161,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
     }
   }
 
-  private static Object coerce(Object o, RelDataType type) {
+  public static Object coerce(Object o, RelDataType type) {
     if (o == null) {
       return null;
     }
@@ -193,7 +193,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
 
   /** Thrown when a non-literal occurs in an argument to a user-defined
    * table macro. */
-  private static class NonLiteralException extends Exception {
+  public static class NonLiteralException extends Exception {
   }
 }
 

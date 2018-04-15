@@ -23,6 +23,9 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Namespace whose contents are defined by the result of a call to a
  * user-defined procedure.
@@ -59,7 +62,12 @@ public class ProcedureNamespace extends AbstractNamespace {
           : "User-defined table function should have CURSOR type, not " + type;
       final SqlUserDefinedTableFunction udf =
           (SqlUserDefinedTableFunction) operator;
-      return udf.getRowType(validator.typeFactory, callBinding.operands());
+      List<SqlNode> operands = callBinding.operands();
+      List<RelDataType> types = new ArrayList<>(operands.size());
+      for (int i = 0; i < operands.size(); i++) {
+        types.add(i, validator.deriveType(scope, operands.get(i)));
+      }
+      return udf.getRowType(validator.typeFactory, callBinding.operands(), types);
     } else if (operator instanceof SqlUserDefinedTableMacro) {
       assert type.getSqlTypeName() == SqlTypeName.CURSOR
           : "User-defined table macro should have CURSOR type, not " + type;

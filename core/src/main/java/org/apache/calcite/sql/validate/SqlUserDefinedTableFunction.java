@@ -62,10 +62,11 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {
    * @param typeFactory Type factory
    * @param operandList arguments of a function call (only literal arguments
    *                    are passed, nulls for non-literal ones)
+   * @param operandTypes arguments types.
    * @return row type of the table
    */
   public RelDataType getRowType(RelDataTypeFactory typeFactory,
-      List<SqlNode> operandList) {
+          List<SqlNode> operandList, List<RelDataType> operandTypes) {
     List<Object> arguments =
         SqlUserDefinedTableMacro.convertArguments(typeFactory, operandList,
           function, getNameAsId(), false);
