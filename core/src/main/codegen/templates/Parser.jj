@@ -1388,11 +1388,11 @@ SqlNode SqlEmitStrategy() :
       }
     )
     (
-      <BEFORE> <COMPLETE> {
+      <BEFORE> <WATERMARK> {
           return SqlEmit.createBeforeStrategy(delay, getPos());
       }
     |
-      <AFTER> <COMPLETE> {
+      <AFTER> <WATERMARK> {
           return SqlEmit.createAfterStrategy(delay, getPos());
       }
     )
@@ -5685,7 +5685,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < COMMAND_FUNCTION_CODE: "COMMAND_FUNCTION_CODE" >
 |   < COMMIT: "COMMIT" >
 |   < COMMITTED: "COMMITTED" >
-|   < COMPLETE: "COMPLETE" >
 |   < CONDITION: "CONDITION" >
 |   < CONDITION_NUMBER: "CONDITION_NUMBER" >
 |   < CONNECT: "CONNECT" >
@@ -6232,6 +6231,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < VERSION: "VERSION" >
 |   < VERSIONING: "VERSIONING" >
 |   < VIEW: "VIEW" >
+|   < WATERMARK: "WATERMARK" >
 |   < WEEK: "WEEK" >
 |   < WHEN: "WHEN" >
 |   < WHENEVER: "WHENEVER" >

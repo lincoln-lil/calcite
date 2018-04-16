@@ -154,7 +154,6 @@ public class SqlParserTest {
       "COLLECT",                                           "2011", "2014", "c",
       "COLUMN",                        "92", "99", "2003", "2011", "2014", "c",
       "COMMIT",                        "92", "99", "2003", "2011", "2014", "c",
-      "COMPLETE",                                                          "c",
       "CONDITION",                     "92", "99", "2003", "2011", "2014", "c",
       "CONNECT",                       "92", "99", "2003", "2011", "2014", "c",
       "CONNECTION",                    "92", "99",
@@ -535,6 +534,7 @@ public class SqlParserTest {
       "VERSIONING",                                        "2011", "2014", "c",
       "VERSIONS",                                          "2011",
       "VIEW",                          "92", "99",
+      "WATERMARK",                                                         "c",
       "WHEN",                          "92", "99", "2003", "2011", "2014", "c",
       "WHENEVER",                      "92", "99", "2003", "2011", "2014", "c",
       "WHERE",                         "92", "99", "2003", "2011", "2014", "c",
@@ -3403,11 +3403,11 @@ public class SqlParserTest {
         + "(SELECT *\n"
         + "FROM `EMPS`)\n"
         + "EMIT\n"
-        + "WITH DELAY '1' MINUTE BEFORE COMPLETE,\n"
-        + "WITHOUT DELAY AFTER COMPLETE";
+        + "WITH DELAY '1' MINUTE BEFORE WATERMARK,\n"
+        + "WITHOUT DELAY AFTER WATERMARK";
     sql("insert into emps select * from emps\n"
-        + "emit with delay '1' minute before complete,\n"
-        + "without delay after complete")
+        + "emit with delay '1' minute before watermark,\n"
+        + "without delay after watermark")
         .ok(expected)
         .node(not(isDdl()));
   }
@@ -3417,9 +3417,9 @@ public class SqlParserTest {
         + "(SELECT *\n"
         + "FROM `EMPS`)\n"
         + "EMIT\n"
-        + "WITH DELAY '1' MINUTE AFTER COMPLETE";
+        + "WITH DELAY '1' MINUTE AFTER WATERMARK";
     sql("insert into emps select * from emps\n"
-        + "emit with delay '1' minute after complete")
+        + "emit with delay '1' minute after watermark")
         .ok(expected)
         .node(not(isDdl()));
   }
@@ -3429,9 +3429,9 @@ public class SqlParserTest {
         + "(SELECT *\n"
         + "FROM `EMPS`)\n"
         + "EMIT\n"
-        + "WITHOUT DELAY BEFORE COMPLETE";
+        + "WITHOUT DELAY BEFORE WATERMARK";
     sql("insert into emps select * from emps\n"
-        + "emit without delay before complete")
+        + "emit without delay before watermark")
         .ok(expected)
         .node(not(isDdl()));
   }
@@ -3444,10 +3444,10 @@ public class SqlParserTest {
         + "SELECT *\n"
         + "FROM `EMPS2`)\n"
         + "EMIT\n"
-        + "WITHOUT DELAY BEFORE COMPLETE,\n"
-        + "WITH DELAY '30' SECOND AFTER COMPLETE";
+        + "WITHOUT DELAY BEFORE WATERMARK,\n"
+        + "WITH DELAY '30' SECOND AFTER WATERMARK";
     sql("insert into emps select * from emps1 union select * from emps2\n"
-        + "emit with delay '30' second after complete, without delay before complete")
+        + "emit with delay '30' second after watermark, without delay before watermark")
         .ok(expected);
   }
 

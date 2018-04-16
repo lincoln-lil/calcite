@@ -109,7 +109,7 @@ public class SqlEmit extends SqlCall {
     writer.newlineAndIndent();
     if (beforeDelay != null) {
       unparse(beforeDelay, writer);
-      writer.keyword("BEFORE COMPLETE");
+      writer.keyword("BEFORE WATERMARK");
     }
 
     if (afterDelay != null) {
@@ -118,7 +118,7 @@ public class SqlEmit extends SqlCall {
         writer.newlineAndIndent();
       }
       unparse(afterDelay, writer);
-      writer.keyword("AFTER COMPLETE");
+      writer.keyword("AFTER WATERMARK");
     }
   }
 
