@@ -2827,27 +2827,6 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2323">[CALCITE-2323]
-   * Validator should allow alternative nullCollations for ORDER BY in
-   * OVER</a>. */
-  @Test public void testUserDefinedOrderByOver() {
-    String sql = "select deptno,\n"
-        + "  rank() over(partition by empno order by deptno)\n"
-        + "from emp\n"
-        + "order by row_number() over(partition by empno order by deptno)";
-    Properties properties = new Properties();
-    properties.setProperty(
-        CalciteConnectionProperty.DEFAULT_NULL_COLLATION.camelName(),
-        NullCollation.LOW.name());
-    CalciteConnectionConfigImpl connectionConfig =
-        new CalciteConnectionConfigImpl(properties);
-    TesterImpl tester = new TesterImpl(getDiffRepos(), false, false, true, false,
-        null, null, SqlToRelConverter.Config.DEFAULT,
-        SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
-    sql(sql).with(tester).ok();
-  }
-
   @Test public void testMatchRecognizeRowsPerMatch1() {
     final String sql = "select *\n"
         + "  from emp match_recognize\n"
@@ -2876,6 +2855,25 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "      up as up.mgr > prev(up.mgr)\n"
         + "  ) mr";
     sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2323">[CALCITE-2323]
+   * Validator should allow alternative nullCollations for ORDER BY in OVER.</a>.
+   */
+  @Test public void testUserDefinedOrderByOver() {
+    String sql = "select deptno, rank() over(partition by empno order by deptno)\n"
+                 + "from emp order by row_number() over(partition by empno order by deptno)";
+    Properties properties = new Properties();
+    properties.setProperty(
+        CalciteConnectionProperty.DEFAULT_NULL_COLLATION.camelName(),
+        NullCollation.LOW.name());
+    CalciteConnectionConfigImpl connectionConfig = new CalciteConnectionConfigImpl(properties);
+    TesterImpl tester =  new TesterImpl(
+        getDiffRepos(), false, false, true, false,
+        null, null, SqlToRelConverter.Config.DEFAULT,
+        SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
+    sql(sql).with(tester).ok();
   }
 
   /**
