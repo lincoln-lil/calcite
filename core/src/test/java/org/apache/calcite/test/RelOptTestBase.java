@@ -126,6 +126,18 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
 
   /**
    * Checks the plan for a SQL statement before/after executing a given
+   * program, but can specify type coercion.
+   *
+   * @param program Planner program
+   * @param sql     SQL query
+   * @param typeCoercion if enable type coercion
+   */
+  protected void checkPlanning(HepProgram program, String sql, boolean typeCoercion) {
+    checkPlanning(new HepPlanner(program), sql, typeCoercion);
+  }
+
+  /**
+   * Checks the plan for a SQL statement before/after executing a given
    * planner.
    *
    * @param planner Planner
@@ -133,6 +145,19 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
    */
   protected void checkPlanning(RelOptPlanner planner, String sql) {
     checkPlanning(tester, null, planner, sql);
+  }
+
+  /**
+   * Checks the plan for a SQL statement before/after executing a given
+   * planner, but can specify  type coercion.
+   *
+   * @param planner Planner
+   * @param sql     SQL query
+   * @param typeCoercion If enable implicit type coercion
+   */
+  protected void checkPlanning(RelOptPlanner planner, String sql, boolean typeCoercion) {
+    Tester tester1 = tester.enableTypeCoercion(typeCoercion);
+    checkPlanning(tester1, null, planner, sql);
   }
 
   /**

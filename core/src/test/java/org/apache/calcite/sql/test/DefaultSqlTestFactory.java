@@ -59,6 +59,7 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
           .put("unquotedCasing", Casing.TO_UPPER)
           .put("caseSensitive", true)
           .put("conformance", SqlConformanceEnum.DEFAULT)
+          .put("enableTypeCoercion", true)
           .put("operatorTable", SqlStdOperatorTable.instance())
           .put("connectionFactory",
               CalciteAssert.EMPTY_CONNECTION_FACTORY

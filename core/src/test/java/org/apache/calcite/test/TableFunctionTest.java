@@ -362,8 +362,11 @@ public class TableFunctionTest {
     final String q = "select *\n"
         + "from table(\"s\".\"multiplication\"('2', 3, 100))\n"
         + "where c1 + 2 < c2";
-    final String e = "No match found for function signature "
-        + "multiplication(<CHARACTER>, <NUMERIC>, <NUMERIC>)";
+    // when we add in type coercion, we will pass in null argument
+    // for cast node to infer the table row type, case we use
+    // SqlUserDefinedTableMacro#convertArguments to decide it.
+    // for this table function: multiplication, will just throw IllegalArgumentException.
+    final String e = "java.lang.IllegalArgumentException";
     with().query(q).throws_(e);
   }
 

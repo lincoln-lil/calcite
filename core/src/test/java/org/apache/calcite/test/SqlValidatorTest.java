@@ -338,10 +338,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("-interval '1' month", "INTERVAL MONTH NOT NULL");
     checkFails(
         "SELECT ^-'abc'^ from (values(true))",
-        "(?s).*Cannot apply '-' to arguments of type '-<CHAR.3.>'.*");
+        "(?s).*Cannot apply '-' to arguments of type '-<CHAR.3.>'.*",
+        false);
+    check("SELECT -'abc' from (values(true))");
     checkFails(
         "SELECT ^+'abc'^ from (values(true))",
-        "(?s).*Cannot apply '\\+' to arguments of type '\\+<CHAR.3.>'.*");
+        "(?s).*Cannot apply '\\+' to arguments of type '\\+<CHAR.3.>'.*",
+        false);
+    check("SELECT +'abc' from (values(true))");
   }
 
   @Test public void testEqualNotEqual() {
@@ -397,7 +401,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("''=.1"); // compare CHAR, DECIMAL ok
     checkExpFails(
         "^true<>1e-1^",
-        "(?s).*Cannot apply '<>' to arguments of type '<BOOLEAN> <> <DOUBLE>'.*");
+        "(?s).*Cannot apply '<>' to arguments of type '<BOOLEAN> <> <DOUBLE>'.*",
+        false);
     checkExp("false=''"); // compare BOOLEAN, CHAR ok
     checkExpFails(
         "^x'a4'=0.01^",
@@ -421,7 +426,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testBinaryStringFails() {
     assertExceptionIsThrown(
         "select ^x'ffee'='abc'^ from (values(true))",
-        "(?s).*Cannot apply '=' to arguments of type '<BINARY.2.> = <CHAR.3.>'.*");
+        "(?s).*Cannot apply '=' to arguments of type '<BINARY.2.> = <CHAR.3.>'.*",
+        false);
+    checkExpType(
+        "select x'ffee'='abc' from (values(true))",
+        "BOOLEAN");
     assertExceptionIsThrown(
         "select ^x'ff'=88^ from (values(true))",
         "(?s).*Cannot apply '=' to arguments of type '<BINARY.1.> = <INTEGER>'.*");
@@ -469,7 +478,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testArithmeticOperatorsFails() {
     checkExpFails(
         "^power(2,'abc')^",
-        "(?s).*Cannot apply 'POWER' to arguments of type 'POWER.<INTEGER>, <CHAR.3.>.*");
+        "(?s).*Cannot apply 'POWER' to arguments of type 'POWER.<INTEGER>, <CHAR.3.>.*",
+        false);
+    checkExpType("power(2,'abc')", "DOUBLE NOT NULL");
     checkExpFails(
         "^power(true,1)^",
         "(?s).*Cannot apply 'POWER' to arguments of type 'POWER.<BOOLEAN>, <INTEGER>.*");
@@ -490,7 +501,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s).*Cannot apply 'LOG10' to arguments of type 'LOG10.<BINARY.1.>.*");
     checkExpFails(
         "^exp('abc')^",
-        "(?s).*Cannot apply 'EXP' to arguments of type 'EXP.<CHAR.3.>.*");
+        "(?s).*Cannot apply 'EXP' to arguments of type 'EXP.<CHAR.3.>.*",
+        false);
+    checkExpType("exp('abc')", "DOUBLE NOT NULL");
   }
 
   @Test public void testCaseExpression() {
@@ -546,7 +559,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // varchar not comparable with bit string
     checkWholeExpFails(
         "case 'string' when x'01' then 'zero one' else 'something' end",
-        "(?s).*Cannot apply '=' to arguments of type '<CHAR.6.> = <BINARY.1.>'.*");
+        "(?s).*Cannot apply '=' to arguments of type '<CHAR.6.> = <BINARY.1.>'.*",
+        false);
 
     // all thens and else return null
     checkWholeExpFails(
@@ -584,10 +598,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testCoalesceFails() {
     checkWholeExpFails(
         "coalesce('a',1)",
-        "Illegal mixing of types in CASE or COALESCE statement");
+        "Illegal mixing of types in CASE or COALESCE statement",
+        false);
+    checkExpType("coalesce('a',1)", "VARCHAR NOT NULL");
     checkWholeExpFails(
         "coalesce('a','b',1)",
-        "Illegal mixing of types in CASE or COALESCE statement");
+        "Illegal mixing of types in CASE or COALESCE statement",
+        false);
+    checkExpType("coalesce('a','b',1)", "VARCHAR NOT NULL");
   }
 
   @Test public void testStringCompare() {
@@ -739,7 +757,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("lower(n'sadf')");
     checkExpType("lower('sadf')", "CHAR(4) NOT NULL");
     checkWholeExpFails("upper(123)",
-        "(?s).*Cannot apply 'UPPER' to arguments of type 'UPPER.<INTEGER>.'.*");
+        "(?s).*Cannot apply 'UPPER' to arguments of type 'UPPER.<INTEGER>.'.*",
+        false);
+    checkExpType("upper(123)", "VARCHAR NOT NULL");
   }
 
   @Test public void testPosition() {
@@ -776,9 +796,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testTrimFails() {
     checkWholeExpFails("trim(123 FROM 'beard')",
-        "(?s).*Cannot apply 'TRIM' to arguments of type.*");
+        "(?s).*Cannot apply 'TRIM' to arguments of type.*",
+        false);
+    checkExpType("trim(123 FROM 'beard')", "VARCHAR(5) NOT NULL");
     checkWholeExpFails("trim('a' FROM 123)",
-        "(?s).*Cannot apply 'TRIM' to arguments of type.*");
+        "(?s).*Cannot apply 'TRIM' to arguments of type.*",
+        false);
+    checkExpType("trim('a' FROM 123)", "VARCHAR NOT NULL");
     checkWholeExpFails("trim('a' FROM _UTF16'b')",
         "(?s).*not comparable to each other.*");
   }
@@ -800,7 +824,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails("translate('abc', 'ab')",
         "Invalid number of arguments to function 'TRANSLATE3'. Was expecting 3 arguments");
     checkWholeExpFails("translate('abc', 'ab', 123)",
-        "(?s)Cannot apply 'TRANSLATE3' to arguments of type 'TRANSLATE3\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*");
+        "(?s)Cannot apply 'TRANSLATE3' to arguments of type 'TRANSLATE3\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*",
+        false);
+    checkExpType("translate('abc', 'ab', 123)", "VARCHAR(3) NOT NULL");
     checkWholeExpFails("translate('abc', 'ab', '+-', 'four')",
         "Invalid number of arguments to function 'TRANSLATE3'. Was expecting 3 arguments");
   }
@@ -810,7 +836,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("overlay('ABCdef' placing 'abc' from 1 for 3)");
     checkWholeExpFails(
         "overlay('ABCdef' placing 'abc' from '1' for 3)",
-        "(?s).*OVERLAY\\(<STRING> PLACING <STRING> FROM <INTEGER>\\).*");
+        "(?s).*OVERLAY\\(<STRING> PLACING <STRING> FROM <INTEGER>\\).*",
+        false);
+    checkExpType("overlay('ABCdef' placing 'abc' from '1' for 3)", "VARCHAR(9) NOT NULL");
     checkExpType(
         "overlay('ABCdef' placing 'abc' from 1 for 3)",
         "VARCHAR(9) NOT NULL");
@@ -884,8 +912,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testNull() {
-    checkFails("values 1.0 + ^NULL^", "(?s).*Illegal use of .NULL.*");
-    checkExpFails("1.0 + ^NULL^", "(?s).*Illegal use of .NULL.*");
+    checkExpFails("values 1.0 + ^NULL^", "(?s).*Illegal use of .NULL.*", false);
+    checkExpType("values 1.0 + NULL", "DECIMAL(19, 1)");
+    checkExpFails("1.0 + ^NULL^", "(?s).*Illegal use of .NULL.*", false);
+    checkExpType("1.0 + NULL", "DECIMAL(19, 1)");
 
     // FIXME: SQL:2003 does not allow raw NULL in IN clause
     checkExp("1 in (1, null, 2)");
@@ -972,16 +1002,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails(
         "cast(x'ff' as decimal(5,2))",
         "(?s).*Cast function cannot convert value of type BINARY\\(1\\) to type DECIMAL\\(5, 2\\)");
-
-    checkWholeExpFails(
-        "cast(1 as boolean)",
-        "(?s).*Cast function cannot convert value of type INTEGER to type BOOLEAN.*");
-    checkWholeExpFails(
-        "cast(1.0e1 as boolean)",
-        "(?s).*Cast function cannot convert value of type DOUBLE to type BOOLEAN.*");
-    checkWholeExpFails(
-        "cast(true as numeric)",
-        "(?s).*Cast function cannot convert value of type BOOLEAN to type DECIMAL.*");
+    // Validation passes for cast between numeric and boolean, the runtime can decide if to support
+    // this.
+    checkExp("cast(1 as boolean)");
+    checkExp("cast(1.0e1 as boolean)");
+    checkExp("cast(true as numeric)");
     checkWholeExpFails(
         "cast(DATE '1243-12-01' as TIME)",
         "(?s).*Cast function cannot convert value of type DATE to type TIME.*");
@@ -1026,6 +1051,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Argument to function 'LOCALTIME' must be a literal");
     checkWholeExpFails(
         "LOCALTIME(NULL)",
+        "Argument to function 'LOCALTIME' must not be NULL",
+        false);
+    checkWholeExpFails(
+        "LOCALTIME(NULL)",
         "Argument to function 'LOCALTIME' must not be NULL");
     checkWholeExpFails(
         "LOCALTIME(CAST(NULL AS INTEGER))",
@@ -1045,7 +1074,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Argument to function 'LOCALTIME' must be a valid precision between '0' and '3'");
     checkWholeExpFails(
         "LOCALTIME('foo')",
-        "(?s).*Cannot apply.*");
+        "(?s).*Cannot apply.*",
+        false);
+    checkWholeExpFails(
+        "LOCALTIME('foo')",
+        "Argument to function 'LOCALTIME' must be a literal");
 
     // LOCALTIMESTAMP
     checkExp("LOCALTIMESTAMP(3)");
@@ -1068,7 +1101,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Argument to function 'LOCALTIMESTAMP' must be a valid precision between '0' and '3'");
     checkWholeExpFails(
         "LOCALTIMESTAMP('foo')",
-        "(?s).*Cannot apply.*");
+        "(?s).*Cannot apply.*",
+        false);
+    checkWholeExpFails(
+        "LOCALTIMESTAMP('foo')",
+        "Argument to function 'LOCALTIMESTAMP' must be a literal");
 
     // CURRENT_DATE
     checkWholeExpFails(
@@ -1109,7 +1146,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Argument to function 'CURRENT_TIME' must be a valid precision between '0' and '3'");
     checkWholeExpFails(
         "current_time('foo')",
-        "(?s).*Cannot apply.*");
+        "(?s).*Cannot apply.*",
+        false);
+    checkWholeExpFails(
+        "current_time('foo')",
+        "Argument to function 'CURRENT_TIME' must be a literal");
 
     // current_timestamp
     checkExp("CURRENT_TIMESTAMP(3)");
@@ -1136,7 +1177,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Argument to function 'CURRENT_TIMESTAMP' must be a valid precision between '0' and '3'");
     checkWholeExpFails(
         "CURRENT_TIMESTAMP('foo')",
-        "(?s).*Cannot apply.*");
+        "(?s).*Cannot apply.*",
+        false);
+    checkWholeExpFails(
+        "CURRENT_TIMESTAMP('foo')",
+        "Argument to function 'CURRENT_TIMESTAMP' must be a literal");
 
     // Date literals
     checkExp("DATE '2004-12-01'");
@@ -1184,13 +1229,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("{fn lcase('Foo' || 'Bar')}");
 
     checkExp("{fn power(2, 3)}");
-    checkWholeExpFails("{fn insert('','',1,2)}", "(?s).*.*");
+    checkWholeExpFails("{fn insert('','',1,2)}", "(?s).*.*", false);
+    checkExp("{fn insert('','',1,2)}");
     checkWholeExpFails("{fn insert('','',1)}", "(?s).*4.*");
 
     checkExp("{fn locate('','',1)}");
     checkWholeExpFails(
         "{fn log10('1')}",
-        "(?s).*Cannot apply.*fn LOG10..<CHAR.1.>.*");
+        "(?s).*Cannot apply.*fn LOG10..<CHAR.1.>.*",
+        false);
+    checkExp("{fn log10('1')}");
     final String expected = "Cannot apply '\\{fn LOG10\\}' to arguments of"
         + " type '\\{fn LOG10\\}\\(<INTEGER>, <INTEGER>\\)'\\. "
         + "Supported form\\(s\\): '\\{fn LOG10\\}\\(<NUMERIC>\\)'";
@@ -3859,9 +3907,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // divide operator
     checkExpType(
         "cast(1 as TINYINT) / cast(5 as INTEGER)",
-        "INTEGER NOT NULL");
-    checkExpType("cast(null as SMALLINT) / cast(5 as BIGINT)", "BIGINT");
-    checkExpType("cast(1 as REAL) / cast(5 as INTEGER)", "REAL NOT NULL");
+        "DOUBLE NOT NULL");
+    checkExpType("cast(null as SMALLINT) / cast(5 as BIGINT)", "DOUBLE");
+    checkExpType("cast(1 as REAL) / cast(5 as INTEGER)", "DOUBLE NOT NULL");
     checkExpType("cast(null as REAL) / cast(5 as DOUBLE)", "DOUBLE");
     checkExpType(
         "cast(1 as DECIMAL(7, 3)) / 1.654",
@@ -4353,9 +4401,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
 
     winExp2(
-        "sum(sal) over (partition by ^empno + ename^ order by empno range 5 preceding)")
+        "sum(sal) over (partition by ^empno + ename^ order by empno range 5 preceding)",
+        false)
         .fails(
             "(?s)Cannot apply '\\+' to arguments of type '<INTEGER> \\+ <VARCHAR\\(20\\)>'.*");
+
+    winExp2("sum(sal) over (partition by empno + ename order by empno range 5 preceding)");
   }
 
   @Test public void testWindowClause() {
@@ -4859,7 +4910,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "where empno in (10 + deptno, cast(null as integer))");
     checkFails(
         "select * from emp where empno in ^(10, '20')^",
-        ERR_IN_VALUES_INCOMPATIBLE);
+        ERR_IN_VALUES_INCOMPATIBLE,
+        false);
 
     checkExpType("1 in (2, 3, 4)", "BOOLEAN NOT NULL");
     checkExpType("cast(null as integer) in (2, 3, 4)", "BOOLEAN");
@@ -4884,7 +4936,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkExpFails(
         "1 in ^(2, 'c')^",
-        ERR_IN_VALUES_INCOMPATIBLE);
+        ERR_IN_VALUES_INCOMPATIBLE,
+        false);
     checkExpFails(
         "1 in ^((2), (3,4))^",
         ERR_IN_VALUES_INCOMPATIBLE);
@@ -4917,7 +4970,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "where empno < any (10 + deptno, cast(null as integer))");
     checkFails(
         "select * from emp where empno < any ^(10, '20')^",
-        ERR_IN_VALUES_INCOMPATIBLE);
+        ERR_IN_VALUES_INCOMPATIBLE,
+        false);
 
     checkExpType("1 < all (2, 3, 4)", "BOOLEAN NOT NULL");
     checkExpType("cast(null as integer) < all (2, 3, 4)", "BOOLEAN");
@@ -4941,7 +4995,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "BOOLEAN");
 
     checkExpFails("1 = any ^(2, 'c')^",
-        ERR_IN_VALUES_INCOMPATIBLE);
+        ERR_IN_VALUES_INCOMPATIBLE,
+        false);
     checkExpFails("1 > all ^((2), (3,4))^",
         ERR_IN_VALUES_INCOMPATIBLE);
     checkExp("false and 1 = any ('b', 'c')");
@@ -5072,15 +5127,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testInvalidGroupBy2() {
-    sql("select count(*) from emp group by ^deptno + 'a'^")
+    sql("select count(*) from emp group by ^deptno + 'a'^", false)
         .fails("(?s)Cannot apply '\\+' to arguments of type.*");
+    sql("select count(*) from emp group by deptno + 'a'").ok();
   }
 
   @Test public void testInvalidGroupBy3() {
     sql("select deptno / 2 + 1, count(*) as c\n"
         + "from emp\n"
-        + "group by rollup(deptno / 2, sal), rollup(empno, ^deptno + 'a'^)")
+        + "group by rollup(deptno / 2, sal), rollup(empno, ^deptno + 'a'^)", false)
         .fails("(?s)Cannot apply '\\+' to arguments of type.*");
+    sql("select deptno / 2 + 1, count(*) as c\n"
+        + "from emp\n"
+        + "group by rollup(deptno / 2, sal), rollup(empno, ^deptno + 'a'^)").ok();
   }
 
   /** Test case for
@@ -5368,7 +5427,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testSumInvalidArgs() {
     checkFails("select ^sum(ename)^, deptno from emp group by deptno",
-        "(?s)Cannot apply 'SUM' to arguments of type 'SUM\\(<VARCHAR\\(20\\)>\\)'\\. .*");
+        "(?s)Cannot apply 'SUM' to arguments of type 'SUM\\(<VARCHAR\\(20\\)>\\)'\\. .*",
+        false);
+    checkResultType("select sum(ename), deptno from emp group by deptno",
+        "RecordType(DECIMAL(19, 0) NOT NULL EXPR$0, INTEGER NOT NULL DEPTNO) NOT NULL");
   }
 
   @Test public void testSumTooManyArgs() {
@@ -5460,38 +5522,63 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testUnionTypeMismatchFails() {
     checkFails(
         "select 1, ^2^ from emp union select deptno, name from dept",
-        "Type mismatch in column 2 of UNION");
+        "Type mismatch in column 2 of UNION",
+        false);
+
+    check("select 1, 2 from emp union select deptno, ^name^ from dept");
 
     checkFails(
         "select ^slacker^ from emp union select name from dept",
-        "Type mismatch in column 1 of UNION");
+        "Type mismatch in column 1 of UNION",
+        false);
+
+    check("select ^slacker^ from emp union select name from dept");
   }
 
   @Test public void testUnionTypeMismatchWithStarFails() {
     checkFails(
         "select ^*^ from dept union select 1, 2 from emp",
-        "Type mismatch in column 2 of UNION");
+        "Type mismatch in column 2 of UNION",
+        false);
+
+    check("select * from dept union select 1, 2 from emp");
 
     checkFails(
         "select ^dept.*^ from dept union select 1, 2 from emp",
-        "Type mismatch in column 2 of UNION");
+        "Type mismatch in column 2 of UNION",
+        false);
+
+    check("select dept.* from dept union select 1, 2 from emp");
   }
 
   @Test public void testUnionTypeMismatchWithValuesFails() {
     checkFails(
         "values (1, ^2^, 3), (3, 4, 5), (6, 7, 8) union\n"
             + "select deptno, name, deptno from dept",
-        "Type mismatch in column 2 of UNION");
+        "Type mismatch in column 2 of UNION",
+        false);
+
+    check(
+        "values (1, 2, 3), (3, 4, 5), (6, 7, 8) union\n"
+            + "select deptno, ^name^, deptno from dept");
 
     checkFails(
         "select 1 from (values (^'x'^)) union\n"
             + "select 'a' from (values ('y'))",
-        "Type mismatch in column 1 of UNION");
+        "Type mismatch in column 1 of UNION",
+        false);
+
+    check("select 1 from (values ('x')) union\n"
+        + "select 'a' from (values ('y'))");
 
     checkFails(
         "select 1 from (values (^'x'^)) union\n"
             + "(values ('a'))",
-        "Type mismatch in column 1 of UNION");
+        "Type mismatch in column 1 of UNION",
+        false);
+
+    check("select 1 from (values ('x')) union\n"
+        + "(values ('a'))");
   }
 
   @Test public void testValuesTypeMismatchFails() {
@@ -6220,7 +6307,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Overriding expression has different type.
     checkFails(
         "select 'foo' as empno from emp order by ^empno + 5^",
-        "(?s)Cannot apply '\\+' to arguments of type '<CHAR\\(3\\)> \\+ <INTEGER>'\\..*");
+        "(?s)Cannot apply '\\+' to arguments of type '<CHAR\\(3\\)> \\+ <INTEGER>'\\..*",
+        false);
+
+    check("select 'foo' as empno from emp order by empno + 5");
   }
 
   @Test public void testOrderJoin() {
@@ -7820,7 +7910,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(INTEGER NOT NULL I) NOT NULL");
 
     checkFails("select * from table(^ramp('3')^)",
-        "Cannot apply 'RAMP' to arguments of type 'RAMP\\(<CHAR\\(1\\)>\\)'\\. Supported form\\(s\\): 'RAMP\\(<NUMERIC>\\)'");
+        "Cannot apply 'RAMP' to arguments of type 'RAMP\\(<CHAR\\(1\\)>\\)'\\. Supported form\\(s\\): 'RAMP\\(<NUMERIC>\\)'",
+        false);
+
+    checkResultType("select * from table(ramp('3'))",
+        "RecordType(INTEGER NOT NULL I) NOT NULL");
 
     checkFails(
         "select * from table(^nonExistentRamp('3')^)",
@@ -7847,8 +7941,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from dept left join lateral table(ramp(dept.deptno)) on true")
         .type(expectedType2);
 
-    sql("select * from dept, lateral table(^ramp(dept.name)^)")
+    sql("select * from dept, lateral table(^ramp(dept.name)^)", false)
         .fails("(?s)Cannot apply 'RAMP' to arguments of type 'RAMP\\(<VARCHAR\\(10\\)>\\)'.*");
+
+    sql("select * from dept, lateral table(ramp(dept.name))")
+        .type("RecordType(INTEGER NOT NULL DEPTNO, "
+            + "VARCHAR(10) NOT NULL NAME, "
+            + "INTEGER NOT NULL I) NOT NULL");
 
     sql("select * from lateral table(ramp(^dept^.deptno)), dept")
         .fails("Table 'DEPT' not found");
@@ -9563,8 +9662,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .monotonic(SqlMonotonicity.INCREASING);
     sql("select stream\n"
         + "cast((rowtime - timestamp '1970-01-01 00:00:00') hour as integer) / 15\n"
-        + "from orders")
+        + "from orders",
+        false)
         .monotonic(SqlMonotonicity.INCREASING);
+    // we add cast in left and right.
+    sql("select stream\n"
+            + "cast((rowtime - timestamp '1970-01-01 00:00:00') hour as integer) / 15\n"
+            + "from orders")
+        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
     sql("select stream\n"
         + "mod(cast((rowtime - timestamp '1970-01-01 00:00:00') hour as integer), 15)\n"
         + "from orders")
@@ -9591,12 +9696,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .monotonic(SqlMonotonicity.DECREASING);
 
     // <monotonic> / constant
-    sql("select stream extract(year from rowtime) / -5 from orders")
+    sql("select stream extract(year from rowtime) / -5 from orders", false)
         .monotonic(SqlMonotonicity.DECREASING);
-    sql("select stream extract(year from rowtime) / 5 from orders")
+    sql("select stream extract(year from rowtime) / -5 from orders")
+        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+    sql("select stream extract(year from rowtime) / 5 from orders", false)
         .monotonic(SqlMonotonicity.INCREASING);
-    sql("select stream extract(year from rowtime) / 0 from orders")
+    sql("select stream extract(year from rowtime) / 5 from orders")
+        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+    sql("select stream extract(year from rowtime) / 0 from orders", false)
         .monotonic(SqlMonotonicity.CONSTANT); // +inf is constant!
+    sql("select stream extract(year from rowtime) / 0 from orders")
+        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
 
     // constant / <monotonic> is not monotonic (we don't know whether sign of
     // expression ever changes)

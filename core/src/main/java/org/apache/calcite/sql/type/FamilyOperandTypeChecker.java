@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import com.google.common.collect.ImmutableList;
 
@@ -35,7 +36,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * Operand type-checking strategy which checks operands for inclusion in type
  * families.
  */
-public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
+public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
+    ImplicitCastOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
   protected final ImmutableList<SqlTypeFamily> families;
@@ -97,6 +99,47 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
   }
 
   public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    if (families.size() != callBinding.getOperandCount()) {
+      // assume this is an inapplicable sub-rule of a composite rule;
+      // don't throw
+      return false;
+    }
+    for (Ord<SqlNode> op : Ord.zip(callBinding.operands())) {
+      if (!checkSingleOperandType(
+          callBinding,
+          op.e,
+          op.i,
+          false)) {
+        // try type coercion if it is allowed.
+        boolean changed = false;
+        if (callBinding.getValidator().getEnableTypeCoercion()) {
+          TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+          ImmutableList.Builder<RelDataType> builder = ImmutableList.builder();
+          for (int i = 0; i < callBinding.getOperandCount(); i++) {
+            builder.add(callBinding.getOperandType(i));
+          }
+          ImmutableList<RelDataType> dataTypes = builder.build();
+          changed = typeCoercion.implicitTypeCast(callBinding, dataTypes, families);
+        }
+        // recheck to validate.
+        for (Ord<SqlNode> op1 : Ord.zip(callBinding.operands())) {
+          if (!checkSingleOperandType(
+              callBinding,
+              op1.e,
+              op1.i,
+              throwOnFailure)) {
+            return false;
+          }
+        }
+        return changed;
+      }
+    }
+    return true;
+  }
+
+  public boolean checkOperandTypesWithoutTypeCoercion(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     if (families.size() != callBinding.getOperandCount()) {

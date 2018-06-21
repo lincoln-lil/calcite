@@ -2464,9 +2464,10 @@ public class RelOptRulesTest extends RelOptTestBase {
 
     // Make sure constant expressions inside the cast can be reduced
     // in addition to the casts.
+    // We disable type coercion here for / operator to not add in cast again as decimal type.
     checkPlanning(program,
         "select * from emp "
-            + "where cast((empno + (10/2)) as int) = 13");
+            + "where cast((empno + (10/2)) as int) = 13", false);
   }
 
   @Ignore // Calcite does not support INSERT yet
@@ -3476,7 +3477,7 @@ public class RelOptRulesTest extends RelOptTestBase {
    * Wrong collation trait in SortJoinTransposeRule for right joins</a>. */
   @Test public void testSortJoinTranspose4() {
     // Create a customized test with RelCollation trait in the test cluster.
-    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, false,
+    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, false, true,
         null, null) {
       @Override public RelOptPlanner createPlanner() {
         return new MockRelOptPlanner(Contexts.empty()) {

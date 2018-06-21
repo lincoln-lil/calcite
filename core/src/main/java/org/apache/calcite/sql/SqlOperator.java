@@ -503,7 +503,7 @@ public abstract class SqlOperator {
 
     final SqlOperator sqlOperator =
         SqlUtil.lookupRoutine(validator.getOperatorTable(), getNameAsId(),
-            argTypes, null, null, getSyntax(), getKind());
+            argTypes, null, null, getSyntax(), getKind(), false);
 
     ((SqlBasicCall) call).setOperator(sqlOperator);
     RelDataType type = call.getOperator().validateOperands(validator, scope, call);

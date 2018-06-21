@@ -4403,7 +4403,7 @@ UnionRel(all=[true])
         <Resource name="planBefore">
             <![CDATA[
 LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
-  LogicalFilter(condition=[>(CAST($0):BIGINT NOT NULL, CAST('12'):BIGINT NOT NULL)])
+  LogicalFilter(condition=[>($0, CAST('12'):INTEGER NOT NULL)])
     LogicalAggregate(group=[{5, 7}], EXPR$1=[COUNT()])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -4412,7 +4412,7 @@ LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
             <![CDATA[
 LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
   LogicalAggregate(group=[{5, 7}], EXPR$1=[COUNT()])
-    LogicalFilter(condition=[>(CAST($5):BIGINT NOT NULL, 12)])
+    LogicalFilter(condition=[>($5, 12)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4973,7 +4973,7 @@ ProjectRel(EXPR$0=[1])
             <![CDATA[
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
-    LogicalFilter(condition=[AND(>($7, 7), =($6, $7), >(+($6, $7), /($6, 2)))])
+    LogicalFilter(condition=[AND(>($7, 7), =($6, $7), >(+($6, $7), /(CAST($6):DOUBLE NOT NULL, 2)))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[=($5, $7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -4983,7 +4983,7 @@ LogicalProject(EXPR$0=[1])
             <![CDATA[
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
-    LogicalFilter(condition=[AND(>($7, 7), =($6, $7), >(+($6, $7), /($6, 2)))])
+    LogicalFilter(condition=[AND(>($7, 7), =($6, $7), >(+($6, $7), /(CAST($6):DOUBLE NOT NULL, 2)))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[>($7, 7)])
       LogicalFilter(condition=[=($5, $7)])

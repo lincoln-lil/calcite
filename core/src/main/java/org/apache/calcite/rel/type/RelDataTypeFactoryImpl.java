@@ -560,6 +560,37 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return null;
   }
 
+  public RelDataType decimalOf(RelDataType type) {
+    Preconditions.checkArgument(SqlTypeUtil.isNumeric(type) || SqlTypeUtil.isNull(type));
+    SqlTypeName typeName = type.getSqlTypeName();
+    assert typeName != null;
+    switch (typeName) {
+    case DECIMAL:
+      return type;
+    case TINYINT:
+      return createSqlType(SqlTypeName.DECIMAL, 3, 0);
+    case SMALLINT:
+      return createSqlType(SqlTypeName.DECIMAL, 5, 0);
+    case INTEGER:
+      return createSqlType(SqlTypeName.DECIMAL, 10, 0);
+    case BIGINT:
+      // the default max precision is 19, so this is actually DECIMAL(19, 0)
+      // but derived system can override the max precision/scale.
+      return createSqlType(SqlTypeName.DECIMAL, 38, 0);
+    case REAL:
+      return createSqlType(SqlTypeName.DECIMAL, 14, 7);
+    case FLOAT:
+      return createSqlType(SqlTypeName.DECIMAL, 14, 7);
+    case DOUBLE:
+      // the default max precision is 19, so this is actually DECIMAL(19, 15)
+      // but derived system can override the max precision/scale.
+      return createSqlType(SqlTypeName.DECIMAL, 30, 15);
+    default:
+      // default precision and scale.
+      return createSqlType(SqlTypeName.DECIMAL);
+    }
+  }
+
   public Charset getDefaultCharset() {
     return Util.getDefaultCharset();
   }

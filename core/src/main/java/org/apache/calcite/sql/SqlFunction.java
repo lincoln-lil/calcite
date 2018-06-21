@@ -23,6 +23,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -233,9 +234,10 @@ public class SqlFunction extends SqlOperator {
     final List<RelDataType> argTypes = constructArgTypeList(validator, scope,
         call, args, convertRowArgToColumnList);
 
-    final SqlFunction function =
+    SqlFunction function =
         (SqlFunction) SqlUtil.lookupRoutine(validator.getOperatorTable(),
-            getNameAsId(), argTypes, argNames, getFunctionType(), SqlSyntax.FUNCTION, getKind());
+            getNameAsId(), argTypes, argNames, getFunctionType(), SqlSyntax.FUNCTION, getKind(),
+            false);
     try {
       // if we have a match on function name and parameter count, but
       // couldn't find a function with  a COLUMN_LIST type, retry, but
@@ -267,8 +269,21 @@ public class SqlFunction extends SqlOperator {
             argTypes);
       }
       if (function == null) {
-        throw validator.handleUnresolvedFunction(call, this, argTypes,
-            argNames);
+        // If we got here, we do not find any func, try again if allow implicit type coercion.
+        boolean changed = false;
+        if (validator.getEnableTypeCoercion()) {
+          function = (SqlFunction) SqlUtil.lookupRoutine(validator.getOperatorTable(),
+              getNameAsId(), argTypes, argNames, getFunctionType(), SqlSyntax.FUNCTION, getKind(),
+              true);
+          if (function != null) {
+            TypeCoercion typeCoercion = validator.getTypeCoercion();
+            changed = typeCoercion.coerceFunctionParams(scope, call, function);
+          }
+        }
+        if (!changed) {
+          throw validator.handleUnresolvedFunction(call, this, argTypes,
+              argNames);
+        }
       }
 
       // REVIEW jvs 25-Mar-2005:  This is, in a sense, expanding

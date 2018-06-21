@@ -182,6 +182,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
     return root.rel;
   }
 
+  private RelNode convertSql(String sql, boolean typeCoercion) {
+    Tester tester1 = tester.enableTypeCoercion(typeCoercion);
+    final RelRoot root = tester1.convertSqlToRel(sql);
+    root.rel.getCluster().setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
+    return root.rel;
+  }
+
   private void checkPercentageOriginalRows(String sql, double expected) {
     checkPercentageOriginalRows(sql, expected, EPSILON);
   }

@@ -18,6 +18,7 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -486,10 +487,15 @@ public abstract class ReturnTypes {
         && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
           || SqlTypeUtil.isDecimal(type2)) {
-        int p1 = type1.getPrecision();
-        int p2 = type2.getPrecision();
-        int s1 = type1.getScale();
-        int s2 = type2.getScale();
+        boolean isJType1 = RelDataTypeFactoryImpl.isJavaType(type1);
+        boolean isJType2 = RelDataTypeFactoryImpl.isJavaType(type2);
+        final RelDataTypeFactory factory = opBinding.getTypeFactory();
+        final RelDataType type1AsDecimal = factory.decimalOf(type1);
+        final RelDataType type2AsDecimal = factory.decimalOf(type2);
+        int p1 = isJType1 ? type1AsDecimal.getPrecision() : type1.getPrecision();
+        int p2 = isJType2 ? type2AsDecimal.getPrecision() : type2.getPrecision();
+        int s1 = isJType1 ? type1AsDecimal.getScale() : type1.getScale();
+        int s2 = isJType2 ? type2AsDecimal.getPrecision() : type2.getScale();
 
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         int scale = Math.max(s1, s2);

@@ -98,7 +98,9 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
   }
 
   public final SqlValidator getValidator() {
-    return factory.getValidator(factory);
+    SqlValidator validator = factory.getValidator(factory);
+    validator.setEnableTypeCoercion((boolean) factory.get("enableTypeCoercion"));
+    return validator;
   }
 
   public void assertExceptionIsThrown(
@@ -145,7 +147,6 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
   public RelDataType getResultType(String sql) {
     SqlValidator validator = getValidator();
     SqlNode n = parseAndValidate(validator, sql);
-
     return validator.getValidatedNodeType(n);
   }
 
@@ -301,6 +302,10 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
     } else {
       return tester;
     }
+  }
+
+  public SqlTester enableTypeCoercion(boolean enabled) {
+    return with("enableTypeCoercion", enabled);
   }
 
   public SqlTester withOperatorTable(SqlOperatorTable operatorTable) {

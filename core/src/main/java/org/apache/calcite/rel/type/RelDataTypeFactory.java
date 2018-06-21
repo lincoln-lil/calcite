@@ -300,6 +300,15 @@ public interface RelDataTypeFactory {
       RelDataType type2);
 
   /**
+   * Create a decimal compatible with other numeric types, this is somehow related to
+   * specific system implementation, you can overrid this logic if it is needed.
+   *
+   * @param type type of the numeric types.
+   * @return decimal representation of the numeric type.
+   */
+  RelDataType decimalOf(RelDataType type);
+
+  /**
    * Creates a
    * {@link org.apache.calcite.rel.type.RelDataTypeFactory.FieldInfoBuilder}.
    * But since {@code FieldInfoBuilder} is deprecated, we recommend that you use

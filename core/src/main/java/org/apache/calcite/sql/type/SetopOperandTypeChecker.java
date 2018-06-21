@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -92,27 +93,44 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
     // column j.
     for (int i = 0; i < colCount; i++) {
       final int i2 = i;
-      final RelDataType type =
-          callBinding.getTypeFactory().leastRestrictive(
-              new AbstractList<RelDataType>() {
-                public RelDataType get(int index) {
-                  return argTypes[index].getFieldList().get(i2)
-                      .getType();
-                }
 
-                public int size() {
-                  return argTypes.length;
-                }
-              });
+      List<RelDataType> columnIthTypes = new AbstractList<RelDataType>() {
+        public RelDataType get(int index) {
+          return argTypes[index].getFieldList().get(i2)
+              .getType();
+        }
+
+        public int size() {
+          return argTypes.length;
+        }
+      };
+
+      final RelDataType type =
+          callBinding.getTypeFactory().leastRestrictive(columnIthTypes);
       if (type == null) {
-        if (throwOnFailure) {
-          SqlNode field =
-              SqlUtil.getSelectListItem(callBinding.operand(0), i);
-          throw validator.newValidationError(field,
-              RESOURCE.columnTypeMismatchInSetop(i + 1, // 1-based
-                  callBinding.getOperator().getName()));
-        } else {
-          return false;
+        boolean changed = false;
+        if (validator.getEnableTypeCoercion()) {
+          for (int j = 0; j < callBinding.getOperandCount(); j++) {
+            TypeCoercion typeCoercion = validator.getTypeCoercion();
+            RelDataType widenType = typeCoercion.getWiderTypeFor(columnIthTypes, true);
+            if (null != widenType) {
+              changed = typeCoercion.widenColumnTypes(
+                  callBinding.getScope(),
+                  callBinding.operand(j), i, widenType)
+                  || changed;
+            }
+          }
+        }
+        if (!changed) {
+          if (throwOnFailure) {
+            SqlNode field =
+                SqlUtil.getSelectListItem(callBinding.operand(0), i);
+            throw validator.newValidationError(field,
+                RESOURCE.columnTypeMismatchInSetop(i + 1, // 1-based
+                    callBinding.getOperator().getName()));
+          } else {
+            return false;
+          }
         }
       }
     }

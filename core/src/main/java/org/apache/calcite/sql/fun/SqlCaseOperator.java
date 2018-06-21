@@ -37,6 +37,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.Iterables;
@@ -247,7 +248,20 @@ public class SqlCaseOperator extends SqlOperator {
 
     RelDataType ret = callBinding.getTypeFactory().leastRestrictive(argTypes);
     if (null == ret) {
-      throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
+      boolean changed = false;
+      if (callBinding.getValidator().getEnableTypeCoercion()) {
+        TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+        RelDataType commonType = typeCoercion.getWiderTypeFor(argTypes, true);
+        if (null != commonType) {
+          changed = typeCoercion.caseWhenCoercion(callBinding);
+          if (changed) {
+            ret = commonType;
+          }
+        }
+      }
+      if (!changed) {
+        throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
+      }
     }
     final SqlValidatorImpl validator =
         (SqlValidatorImpl) callBinding.getValidator();

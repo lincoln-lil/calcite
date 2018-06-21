@@ -20,8 +20,10 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
@@ -233,6 +235,12 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
+    // This is a special case for family check, we do it early here, then goes to the
+    // comparability and same type check.
+    if (callBinding.getValidator().getEnableTypeCoercion()) {
+      TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+      typeCoercion.binaryArithmeticPromote(callBinding);
+    }
     if (check(callBinding)) {
       return true;
     }
@@ -298,8 +306,12 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       return true;
 
     case OR:
-      for (Ord<SqlOperandTypeChecker> ord
-          : Ord.<SqlOperandTypeChecker>zip(allowedRules)) {
+      // If there has a ImplicitCastOperandTypeChecker, we check it without type coercion first,
+      // if all check fails, try to do type coercion if it is allowed (default true).
+      if (checkWithOutTypeCoercion(callBinding)) {
+        return true;
+      }
+      for (Ord<SqlOperandTypeChecker> ord : Ord.<SqlOperandTypeChecker>zip(allowedRules)) {
         SqlOperandTypeChecker rule = ord.e;
         if (rule.checkOperandTypes(callBinding, false)) {
           return true;
@@ -310,6 +322,22 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     default:
       throw new AssertionError();
     }
+  }
+
+  private boolean checkWithOutTypeCoercion(SqlCallBinding callBinding) {
+    if (!callBinding.getValidator().getEnableTypeCoercion()) {
+      return false;
+    }
+    for (Ord<SqlOperandTypeChecker> ord : Ord.<SqlOperandTypeChecker>zip(allowedRules)) {
+      SqlOperandTypeChecker rule = ord.e;
+      if (rule instanceof ImplicitCastOperandTypeChecker) {
+        ImplicitCastOperandTypeChecker rule1 = (ImplicitCastOperandTypeChecker) rule;
+        if (rule1.checkOperandTypesWithoutTypeCoercion(callBinding, false)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
 

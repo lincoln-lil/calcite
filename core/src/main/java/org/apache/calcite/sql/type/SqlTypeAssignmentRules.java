@@ -207,8 +207,8 @@ public class SqlTypeAssignmentRules {
     // we use coerceRules when we're casting
     final Builder coerceRules = new Builder(rules);
 
-    // Make numbers symmetrical,
-    // and make VARCHAR and CHAR castable to/from numbers
+    // Make numbers symmetrical and
+    // make varchar/char/boolean/timestamp castable to/from numbers
     rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
@@ -221,6 +221,9 @@ public class SqlTypeAssignmentRules {
 
     rule.add(SqlTypeName.CHAR);
     rule.add(SqlTypeName.VARCHAR);
+    rule.add(SqlTypeName.BOOLEAN);
+    rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
 
     coerceRules.add(SqlTypeName.TINYINT, rule);
     coerceRules.add(SqlTypeName.SMALLINT, rule);
@@ -232,6 +235,9 @@ public class SqlTypeAssignmentRules {
     coerceRules.add(SqlTypeName.DOUBLE, rule);
     coerceRules.add(SqlTypeName.CHAR, rule);
     coerceRules.add(SqlTypeName.VARCHAR, rule);
+    coerceRules.add(SqlTypeName.BOOLEAN, rule);
+    coerceRules.add(SqlTypeName.TIMESTAMP, rule);
+    coerceRules.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, rule);
 
     // Exact numeric types are castable from intervals
     for (SqlTypeName exactType : SqlTypeName.EXACT_TYPES) {
@@ -250,36 +256,59 @@ public class SqlTypeAssignmentRules {
               .add(SqlTypeName.INTEGER)
               .add(SqlTypeName.BIGINT)
               .add(SqlTypeName.DECIMAL)
+              .add(SqlTypeName.CHAR)
               .add(SqlTypeName.VARCHAR)
               .build());
     }
 
-    // VARCHAR is castable from BOOLEAN, DATE, TIMESTAMP, numeric types and
+    // BINARY is castable from VARBINARY, CHARACTERS.
+    coerceRules.add(SqlTypeName.BINARY,
+        coerceRules.copyValues(SqlTypeName.BINARY)
+            .add(SqlTypeName.VARBINARY)
+            .addAll(SqlTypeName.CHAR_TYPES)
+            .build());
+
+    // VARBINARY is castable from BINARY, CHARACTERS.
+    coerceRules.add(SqlTypeName.VARBINARY,
+        coerceRules.copyValues(SqlTypeName.VARBINARY)
+            .add(SqlTypeName.BINARY)
+            .addAll(SqlTypeName.CHAR_TYPES)
+            .build());
+
+    // VARCHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP, numeric types, BINARY and
     // intervals
     coerceRules.add(SqlTypeName.VARCHAR,
         coerceRules.copyValues(SqlTypeName.VARCHAR)
+            .add(SqlTypeName.CHAR)
             .add(SqlTypeName.BOOLEAN)
             .add(SqlTypeName.DATE)
             .add(SqlTypeName.TIME)
             .add(SqlTypeName.TIMESTAMP)
+            .addAll(SqlTypeName.NUMERIC_TYPES)
+            .addAll(SqlTypeName.BINARY_TYPES)
             .addAll(SqlTypeName.INTERVAL_TYPES)
             .build());
 
-    // CHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP and numeric types
+    // CHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP , numeric types, binary and
+    // intervals
     coerceRules.add(SqlTypeName.CHAR,
         coerceRules.copyValues(SqlTypeName.CHAR)
+            .add(SqlTypeName.VARCHAR)
             .add(SqlTypeName.BOOLEAN)
             .add(SqlTypeName.DATE)
             .add(SqlTypeName.TIME)
             .add(SqlTypeName.TIMESTAMP)
+            .addAll(SqlTypeName.NUMERIC_TYPES)
+            .addAll(SqlTypeName.BINARY_TYPES)
             .addAll(SqlTypeName.INTERVAL_TYPES)
             .build());
 
-    // BOOLEAN is castable from CHAR and VARCHAR
+    // BOOLEAN is castable from CHAR and VARCHAR, numeric and datetime.
     coerceRules.add(SqlTypeName.BOOLEAN,
         coerceRules.copyValues(SqlTypeName.BOOLEAN)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .addAll(SqlTypeName.NUMERIC_TYPES)
             .build());
 
     // DATE, TIME, and TIMESTAMP are castable from
@@ -293,6 +322,7 @@ public class SqlTypeAssignmentRules {
             .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .addAll(SqlTypeName.BINARY_TYPES)
             .build());
 
     // TIME is castable from...
@@ -304,6 +334,7 @@ public class SqlTypeAssignmentRules {
             .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .addAll(SqlTypeName.BINARY_TYPES)
             .build());
 
     // TIME WITH LOCAL TIME ZONE is castable from...
@@ -315,6 +346,7 @@ public class SqlTypeAssignmentRules {
             .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .addAll(SqlTypeName.BINARY_TYPES)
             .build());
 
     // TIMESTAMP is castable from...
@@ -327,6 +359,9 @@ public class SqlTypeAssignmentRules {
             .add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .addAll(SqlTypeName.BINARY_TYPES)
+            .addAll(SqlTypeName.NUMERIC_TYPES)
+            .add(SqlTypeName.BOOLEAN)
             .build());
 
     // TIMESTAMP WITH LOCAL TIME ZONE is castable from...
@@ -339,6 +374,9 @@ public class SqlTypeAssignmentRules {
             .add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .addAll(SqlTypeName.BINARY_TYPES)
+            .addAll(SqlTypeName.NUMERIC_TYPES)
+            .add(SqlTypeName.BOOLEAN)
             .build());
 
     INSTANCE = new SqlTypeAssignmentRules(rules.map);

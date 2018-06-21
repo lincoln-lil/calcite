@@ -90,6 +90,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Bug;
@@ -283,6 +285,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private final SqlValidatorImpl.ValidationErrorFunction validationErrorFunction =
       new SqlValidatorImpl.ValidationErrorFunction();
 
+  // Default implementation of TypeCoercion, which will be lazily initialized.
+  private TypeCoercion typeCoercion;
+
+  private boolean enableTypeCoercion;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -313,6 +320,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     overFinder = new AggFinder(opTab, true, false, false, aggOrOverFinder);
     groupFinder = new AggFinder(opTab, false, false, true, null);
     aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null);
+    enableTypeCoercion = true;
+    typeCoercion = new TypeCoercionImpl(this);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -1833,7 +1842,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       Set<String> aliases,
       List<Map.Entry<String, RelDataType>> fieldList,
       SqlNode exp,
-      SqlValidatorScope scope,
+      SelectScope scope,
       final boolean includeSystemVars) {
     String alias = SqlValidatorUtil.getAlias(exp, -1);
     String uniqueAlias =
@@ -3806,6 +3815,23 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   public SqlValidatorScope getWithScope(SqlNode withItem) {
     assert withItem.getKind() == SqlKind.WITH_ITEM;
     return scopes.get(withItem);
+  }
+
+  public void setEnableTypeCoercion(boolean enabled) {
+    this.enableTypeCoercion = enabled;
+  }
+
+  public boolean getEnableTypeCoercion() {
+    return this.enableTypeCoercion;
+  }
+
+  public void setTypeCoercion(TypeCoercion typeCoercion) {
+    Preconditions.checkNotNull(typeCoercion);
+    this.typeCoercion = typeCoercion;
+  }
+
+  public TypeCoercion getTypeCoercion() {
+    return this.typeCoercion;
   }
 
   /**

@@ -2870,7 +2870,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         NullCollation.LOW.name());
     CalciteConnectionConfigImpl connectionConfig = new CalciteConnectionConfigImpl(properties);
     TesterImpl tester =  new TesterImpl(
-        getDiffRepos(), false, false, true, false,
+        getDiffRepos(), false, false, true, false, true,
         null, null, SqlToRelConverter.Config.DEFAULT,
         SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
     sql(sql).with(tester).ok();
