@@ -284,6 +284,22 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCollectionTableWithLateral4">
+        <Resource name="sql">
+            <![CDATA[select * from (select * from dept, lateral table(ramp(deptno))), lateral table(ramp(deptno))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2], I0=[$3])
+  LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2])
+      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableFunctionScan(invocation=[RAMP($cor0.DEPTNO)], rowType=[RecordType(INTEGER I)])
+    LogicalTableFunctionScan(invocation=[RAMP($cor1.DEPTNO)], rowType=[RecordType(INTEGER I)])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCorrelatedSubQueryInAggregate">
         <Resource name="sql">
             <![CDATA[SELECT SUM(

@@ -2237,6 +2237,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           enclosingNode,
           alias,
           forceNullable);
+      if (tableScope == null) {
+        tableScope = new TableScope(parentScope, node);
+      }
+      tableScope.addChild(getNamespace(node), alias, forceNullable);
       return newNode;
 
     case OVER:
@@ -2287,11 +2291,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       newOperand = registerFrom(
           tableScope == null ? parentScope : tableScope,
           usingScope,
+          true,
           operand,
           enclosingNode,
           alias,
           extendList,
-          forceNullable);
+          forceNullable,
+          lateral);
       if (newOperand != operand) {
         call.setOperand(0, newOperand);
       }
@@ -3533,8 +3539,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     for (ScopeChild child : tableScope.children) {
       if (catalogReader.nameMatcher().matches(child.name, alias)) {
-        names = ((SqlIdentifier) child.namespace.getNode()).names;
-        break;
+        if (child.namespace.getNode() instanceof SqlIdentifier) {
+          names = ((SqlIdentifier) child.namespace.getNode()).names;
+          break;
+        }
       }
     }
     if (names == null || names.size() == 0) {
