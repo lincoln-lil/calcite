@@ -2447,6 +2447,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if (newFrom != from) {
           select.setFrom(newFrom);
         }
+        tableScope = null;
       }
 
       // If this is an aggregating query, the SELECT list and HAVING
@@ -3483,7 +3484,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     String tableAlias = pair.left;
     String columnName = pair.right;
 
-    Table table = findTable(tableAlias);
+    Table table = findTable(tableAlias, scope);
     if (table != null) {
       return table.rolledUpColumnValidInsideAgg(columnName, aggCall, parent,
               catalogReader.getConfig());
@@ -3503,7 +3504,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     String tableAlias = pair.left;
     String columnName = pair.right;
 
-    Table table = findTable(tableAlias);
+    Table table = findTable(tableAlias, scope);
     if (table != null) {
       return table.isRolledUp(columnName);
     }
@@ -3530,14 +3531,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   /**
    * Given a table alias, find the corresponding {@link Table} associated with it
    * */
-  private Table findTable(String alias) {
+  private Table findTable(String alias, SqlValidatorScope scope) {
     List<String> names = null;
-    if (tableScope == null) {
-      // no tables to find
+    if (scope instanceof DelegatingScope && !(scope instanceof ListScope)) {
+      scope = ((DelegatingScope) scope).getParent();
+    }
+
+    if (!(scope instanceof ListScope)) {
       return null;
     }
 
-    for (ScopeChild child : tableScope.children) {
+    for (ScopeChild child : ((ListScope) scope).children) {
       if (catalogReader.nameMatcher().matches(child.name, alias)) {
         if (child.namespace.getNode() instanceof SqlIdentifier) {
           names = ((SqlIdentifier) child.namespace.getNode()).names;
