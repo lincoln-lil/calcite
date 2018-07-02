@@ -2239,6 +2239,33 @@ public class SqlToRelConverter {
       intervalNode = matchBb.convertExpression(interval);
     }
 
+    SqlNode emit = matchRecognize.getEmit();
+    RexNode emitNode = null;
+    if (emit != null) {
+      SqlOperator operator = ((SqlCall) emit).getOperator();
+      List<SqlNode> operands = ((SqlCall) emit).getOperandList();
+      if (operator == SqlMatchRecognize.EMIT_TIMEOUT) {
+        assert operands.size() == 1;
+
+        final ImmutableList.Builder<RexNode> emitNodes = ImmutableList.builder();
+        for (SqlNode emitInterval : (SqlNodeList) operands.get(0)) {
+          RexNode rex = matchBb.convertExpression(emitInterval);
+          emitNodes.add(rex);
+        }
+        emitNode = rexBuilder.makeCall(
+            validator.getUnknownType(),
+            SqlMatchRecognize.EMIT_TIMEOUT,
+            emitNodes.build());
+      } else if (operator == SqlMatchRecognize.EMIT_TIMEOUT_EVERY) {
+        assert operands.size() == 1;
+        final RexNode rex = matchBb.convertExpression(operands.get(0));
+        emitNode = rexBuilder.makeCall(
+            validator.getUnknownType(),
+            SqlMatchRecognize.EMIT_TIMEOUT_EVERY,
+            ImmutableList.of(rex));
+      }
+    }
+
     // convert measures
     final ImmutableMap.Builder<String, RexNode> measureNodes =
         ImmutableMap.builder();
@@ -2274,7 +2301,7 @@ public class SqlToRelConverter {
             rowType, matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(), measureNodes.build(), after,
-            subsetMap, rowsPerMatchNode, partitionKeys, orders, intervalNode);
+            subsetMap, rowsPerMatchNode, partitionKeys, orders, intervalNode, emitNode);
     bb.setRoot(rel, false);
   }
 

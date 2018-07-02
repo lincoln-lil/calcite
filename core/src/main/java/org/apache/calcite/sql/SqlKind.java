@@ -551,6 +551,10 @@ public enum SqlKind {
    */
   SKIP_TO_LAST,
 
+  EMIT_TIMEOUT,
+
+  EMIT_TIMEOUT_EVERY,
+
   // postfix operators
 
   /**

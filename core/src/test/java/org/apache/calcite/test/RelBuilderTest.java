@@ -2037,7 +2037,7 @@ public class RelBuilderTest {
     final RelNode root = builder
         .match(pattern, false, false, pdBuilder.build(),
             measuresBuilder.build(), after, subsets, rowsPerMatch,
-            partitionKeysBuilder.build(), orderKeysBuilder.build(), interval)
+            partitionKeysBuilder.build(), orderKeysBuilder.build(), interval, null)
         .build();
     final String expected = "LogicalMatch(partition=[[$7]], order=[[0]], "
         + "outputFields=[[$7, 'start_nw', 'bottom_nw']], "

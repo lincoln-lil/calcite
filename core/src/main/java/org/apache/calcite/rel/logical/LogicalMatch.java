@@ -61,10 +61,10 @@ public class LogicalMatch extends Match {
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       RexNode rowsPerMatch, List<RexNode> partitionKeys, RelCollation orderKeys,
-      RexNode interval) {
+      RexNode interval, RexNode emit) {
     super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, rowsPerMatch, partitionKeys,
-        orderKeys, interval);
+        orderKeys, interval, emit);
   }
 
   /**
@@ -74,12 +74,12 @@ public class LogicalMatch extends Match {
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets, RexNode rowsPerMatch,
-      List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
+      List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval, RexNode emit) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalMatch(cluster, traitSet, input, rowType, pattern,
         strictStart, strictEnd, patternDefinitions, measures, after, subsets,
-        rowsPerMatch, partitionKeys, orderKeys, interval);
+        rowsPerMatch, partitionKeys, orderKeys, interval, emit);
   }
 
   //~ Methods ------------------------------------------------------
@@ -89,14 +89,14 @@ public class LogicalMatch extends Match {
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       RexNode rowsPerMatch, List<RexNode> partitionKeys, RelCollation orderKeys,
-      RexNode interval) {
+      RexNode interval, RexNode emit) {
     final RelTraitSet traitSet = getCluster().traitSetOf(Convention.NONE);
     return new LogicalMatch(getCluster(), traitSet,
         input,
         rowType,
         pattern, strictStart, strictEnd, patternDefinitions, measures,
         after, subsets, rowsPerMatch, partitionKeys, orderKeys,
-        interval);
+        interval, emit);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

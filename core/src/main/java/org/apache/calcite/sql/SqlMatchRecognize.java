@@ -45,6 +45,7 @@ public class SqlMatchRecognize extends SqlCall {
   public static final int OPERAND_PARTITION_BY = 9;
   public static final int OPERAND_ORDER_BY = 10;
   public static final int OPERAND_INTERVAL = 11;
+  public static final int OPERAND_EMIT = 12;
 
   public static final SqlPrefixOperator SKIP_TO_FIRST =
       new SqlPrefixOperator("SKIP TO FIRST", SqlKind.SKIP_TO_FIRST, 20, null,
@@ -53,6 +54,39 @@ public class SqlMatchRecognize extends SqlCall {
   public static final SqlPrefixOperator SKIP_TO_LAST =
       new SqlPrefixOperator("SKIP TO LAST", SqlKind.SKIP_TO_LAST, 20, null,
           null, null);
+
+  public static final SqlSpecialOperator EMIT_TIMEOUT =
+      new SqlSpecialOperator("EMIT TIMEOUT", SqlKind.EMIT_TIMEOUT, 20) {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+            int leftPrec, int rightPrec) {
+          writer.keyword("EMIT TIMEOUT");
+          SqlWriter.Frame frame = writer.startList("(", ")");
+          for (int i = 0; i < call.getOperandList().size(); i++) {
+            SqlNode emitInterval = call.getOperandList().get(i);
+            if (emitInterval instanceof SqlCall) {
+              writer.sep("INTERVAL");
+            }
+            emitInterval.unparse(writer, 0, 0);
+            if (i != call.getOperandList().size() - 1) {
+              writer.print(",");
+            }
+          }
+          writer.endList(frame);
+        }
+      };
+
+  public static final SqlSpecialOperator EMIT_TIMEOUT_EVERY =
+      new SqlSpecialOperator("EMIT TIMEOUT EVERY", SqlKind.EMIT_TIMEOUT_EVERY, 20) {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+        int leftPrec, int rightPrec) {
+          writer.keyword("EMIT TIMEOUT EVERY");
+          SqlNode emitInterval = call.getOperandList().get(0);
+          if (emitInterval instanceof SqlCall) {
+            writer.sep("INTERVAL");
+          }
+          emitInterval.unparse(writer, 0, 0);
+        }
+      };
 
   //~ Instance fields -------------------------------------------
 
@@ -68,13 +102,14 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlNodeList partitionList;
   private SqlNodeList orderList;
   private SqlNode interval;
+  private SqlNode emit;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
       SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
       SqlNodeList measureList, SqlNode after, SqlNodeList subsetList,
       SqlLiteral rowsPerMatch, SqlNodeList partitionList,
-      SqlNodeList orderList, SqlNode interval) {
+      SqlNodeList orderList, SqlNode interval, SqlNode emit) {
     super(pos);
     this.tableRef = Objects.requireNonNull(tableRef);
     this.pattern = Objects.requireNonNull(pattern);
@@ -91,6 +126,7 @@ public class SqlMatchRecognize extends SqlCall {
     this.partitionList = Objects.requireNonNull(partitionList);
     this.orderList = Objects.requireNonNull(orderList);
     this.interval = interval;
+    this.emit = emit;
   }
 
   // ~ Methods
@@ -105,7 +141,8 @@ public class SqlMatchRecognize extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(tableRef, pattern, strictStart, strictEnd,
-        patternDefList, measureList, after, subsetList, partitionList, orderList);
+        patternDefList, measureList, after, subsetList, rowsPerMatch, partitionList,
+        orderList, interval, emit);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,
@@ -158,6 +195,9 @@ public class SqlMatchRecognize extends SqlCall {
     case OPERAND_INTERVAL:
       interval = (SqlLiteral) operand;
       break;
+    case OPERAND_EMIT:
+      emit = operand;
+      break;
     default:
       throw new AssertionError(i);
     }
@@ -209,6 +249,10 @@ public class SqlMatchRecognize extends SqlCall {
 
   public SqlNode getInterval() {
     return interval;
+  }
+
+  public SqlNode getEmit() {
+    return emit;
   }
 
   /**
@@ -287,7 +331,8 @@ public class SqlMatchRecognize extends SqlCall {
           (SqlLiteral) operands[2], (SqlLiteral) operands[3],
           (SqlNodeList) operands[4], (SqlNodeList) operands[5], operands[6],
           (SqlNodeList) operands[7], (SqlLiteral) operands[8],
-          (SqlNodeList) operands[9], (SqlNodeList) operands[10], (SqlLiteral) operands[11]);
+          (SqlNodeList) operands[9], (SqlNodeList) operands[10],
+          (SqlLiteral) operands[11], operands[12]);
     }
 
     @Override public <R> void acceptCall(
@@ -381,6 +426,11 @@ public class SqlMatchRecognize extends SqlCall {
           writer.sep("INTERVAL");
         }
         pattern.interval.unparse(writer, 0, 0);
+      }
+
+      if (pattern.emit != null) {
+        writer.newlineAndIndent();
+        pattern.emit.unparse(writer, 0, 0);
       }
 
       if (pattern.subsetList != null && pattern.subsetList.size() > 0) {

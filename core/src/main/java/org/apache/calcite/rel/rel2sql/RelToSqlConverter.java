@@ -489,6 +489,12 @@ public class RelToSqlConverter extends SqlImplementor
       interval = context.toSql(null, rexInterval);
     }
 
+    RexNode rexEmit = e.getEmit();
+    SqlNode emit = null;
+    if (rexEmit != null) {
+      emit = context.toSql(null, rexEmit);
+    }
+
     final SqlNodeList subsetList = new SqlNodeList(POS);
     for (Map.Entry<String, SortedSet<String>> entry : e.getSubsets().entrySet()) {
       SqlNode left = new SqlIdentifier(entry.getKey(), POS);
@@ -517,7 +523,7 @@ public class RelToSqlConverter extends SqlImplementor
 
     final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
         pattern, strictStart, strictEnd, patternDefList, measureList, after,
-        subsetList, rowsPerMatch, partitionList, orderByList, interval);
+        subsetList, rowsPerMatch, partitionList, orderByList, interval, emit);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
   }
 

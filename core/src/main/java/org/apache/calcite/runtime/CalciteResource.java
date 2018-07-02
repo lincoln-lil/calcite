@@ -728,6 +728,9 @@ public interface CalciteResource {
   @BaseMessage("First column of ORDER BY must be of type TIMESTAMP")
   ExInst<SqlValidatorException> firstColumnOfOrderByMustBeTimestamp();
 
+  @BaseMessage("EMIT TIMEOUT must be used with ONE ROW PER MATCH WITH TIMEOUT ROWS or ALL ROWS PER MATCH WITH TIMEOUT ROWS")
+  ExInst<SqlValidatorException> emitTimeoutMustBeUsedWithTimeoutRows();
+
   @BaseMessage("Extended columns not allowed under the current SQL conformance level")
   ExInst<SqlValidatorException> extendNotAllowed();
 

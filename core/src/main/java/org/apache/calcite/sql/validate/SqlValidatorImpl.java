@@ -5048,6 +5048,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       setValidatedNodeType(interval, type);
     }
 
+    SqlNode emit = matchRecognize.getEmit();
+    if (emit != null) {
+      emit.validate(this, scope);
+      final boolean emitTimeout = rowsPerMatch != null
+          && (rowsPerMatch.getValue()
+              == SqlMatchRecognize.RowsPerMatchOption.ONE_ROW_WITH_TIMEOUT
+            || rowsPerMatch.getValue()
+              == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS_WITH_TIMEOUT);
+      if (!emitTimeout) {
+        throw newValidationError(emit,
+          RESOURCE.emitTimeoutMustBeUsedWithTimeoutRows());
+      }
+
+      SqlOperator operator = ((SqlCall) emit).getOperator();
+      List<SqlNode> operands = ((SqlCall) emit).getOperandList();
+      if (operator == SqlMatchRecognize.EMIT_TIMEOUT) {
+        for (SqlNode emitInterval : (SqlNodeList) operands.get(0)) {
+          validateEmitInterval(emit, emitInterval, scope);
+        }
+      } else if (operator == SqlMatchRecognize.EMIT_TIMEOUT_EVERY) {
+        SqlNode emitInterval = operands.get(0);
+        validateEmitInterval(emit, emitInterval, scope);
+      }
+    }
+
     validateDefinitions(matchRecognize, scope);
 
     SqlNodeList subsets = matchRecognize.getSubsetList();
@@ -5215,6 +5240,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     node = new NavigationExpander().go(node);
     node = new NavigationReplacer(alpha).go(node);
     return node;
+  }
+
+  private void validateEmitInterval(
+      SqlNode emitNode, SqlNode emitInterval, SqlValidatorScope scope) {
+    if (emitInterval instanceof SqlIntervalLiteral
+        && ((SqlIntervalLiteral) emitInterval).signum() < 0) {
+      throw newValidationError(emitNode,
+        RESOURCE.intervalMustBeNonNegative(((SqlIntervalLiteral) emitInterval).toValue()));
+    }
+
+    if (emitInterval instanceof SqlCall) {
+      SqlNode expand = expand(emitInterval, scope);
+      setOriginal(expand, emitInterval);
+
+      inferUnknownTypes(unknownType, scope, expand);
+      final RelDataType type = deriveType(scope, expand);
+      setValidatedNodeType(emitInterval, type);
+
+      if (type.getSqlTypeName() != SqlTypeName.TINYINT
+          && type.getSqlTypeName() != SqlTypeName.SMALLINT
+          && type.getSqlTypeName() != SqlTypeName.INTEGER
+          && type.getSqlTypeName() != SqlTypeName.BIGINT) {
+        throw newValidationError(emitInterval, RESOURCE.intervalMustBeNumeric());
+      }
+    }
   }
 
   public void validateAggregateParams(SqlCall aggCall, SqlNode filter,

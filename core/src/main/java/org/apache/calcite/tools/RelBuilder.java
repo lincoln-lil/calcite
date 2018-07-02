@@ -1885,7 +1885,7 @@ public class RelBuilder {
       Iterable<? extends RexNode> measureList, RexNode after,
       Map<String, ? extends SortedSet<String>> subsets, RexNode rowsPerMatch,
       Iterable<? extends RexNode> partitionKeys,
-      Iterable<? extends RexNode> orderKeys, RexNode interval) {
+      Iterable<? extends RexNode> orderKeys, RexNode interval, RexNode emit) {
     final List<RelFieldCollation> fieldCollations = new ArrayList<>();
     for (RexNode orderKey : orderKeys) {
       final RelFieldCollation.Direction direction;
@@ -1945,7 +1945,7 @@ public class RelBuilder {
         typeBuilder.build(), strictStart, strictEnd, patternDefinitions,
         measures.build(), after, subsets, rowsPerMatch,
         ImmutableList.copyOf(partitionKeys), RelCollations.of(fieldCollations),
-        interval);
+        interval, emit);
     stack.push(new Frame(match));
     return this;
   }
