@@ -452,6 +452,34 @@ public abstract class Aggregate extends SingleRel {
   }
 
   /**
+   * Returns whether any of the aggregates are accurate DISTINCT.
+   *
+   * @return Whether any of the aggregates are accurate DISTINCT
+   */
+  public boolean containsAccurateDistinctCall() {
+    for (AggregateCall call : aggCalls) {
+      if (call.isDistinct() && !call.isApproximate()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether any of the aggregates are approximate DISTINCT.
+   *
+   * @return Whether any of the aggregates are approximate DISTINCT
+   */
+  public boolean containsApproximateDistinctCall() {
+    for (AggregateCall call : aggCalls) {
+      if (call.isDistinct() && call.isApproximate()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Returns the type of roll-up.
    *
    * @return Type of roll-up
