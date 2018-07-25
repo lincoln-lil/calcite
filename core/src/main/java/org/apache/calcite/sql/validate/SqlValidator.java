@@ -363,6 +363,24 @@ public interface SqlValidator {
   boolean isAggregate(SqlNode selectNode);
 
   /**
+   * Returns the resolved scope for a correlated SqlIdentifier.
+   *
+   * @param corId Identifier
+   * @param scope Naming scope
+   * @return the correlated field referenced score.
+   */
+  SqlValidatorScope getCorRefScope(SqlIdentifier corId, SqlValidatorScope scope);
+
+  /**
+   * Returns whether a correlated SqlIdentifier is in aggregator.
+   *
+   * @param corId Identifier
+   * @param scope Naming scope
+   * @return true if the correlated SqlIdentifier is in aggregator, else false.
+   */
+  boolean isCorFieldInAggregator(SqlIdentifier corId, SqlValidatorScope scope);
+
+  /**
    * Converts a window specification or window name into a fully-resolved
    * window specification. For example, in <code>SELECT sum(x) OVER (PARTITION
    * BY x ORDER BY y), sum(y) OVER w1, sum(z) OVER (w ORDER BY y) FROM t

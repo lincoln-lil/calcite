@@ -4319,6 +4319,17 @@ public class SqlToRelConverter {
           return Pair.of(node, map);
         }
       } else {
+        SqlValidatorScope corRefScope =
+            validator.getCorRefScope(qualified.identifier, scope);
+        boolean isCorRefAggScope = corRefScope instanceof AggregatingSelectScope;
+        boolean isCorFieldInAgg = validator.isCorFieldInAggregator(qualified.identifier, scope);
+        if (isCorRefAggScope && isCorFieldInAgg
+            && !((AggregatingSelectScope) corRefScope).resolved.get().groupExprList.isEmpty()) {
+          String errorMsg = "cannot handle the correlated field: "
+              + qualified.identifier.toString() + " in aggregator with group key";
+          throw new UnsupportedOperationException(errorMsg);
+        }
+
         // We're referencing a relational expression which has not been
         // converted yet. This occurs when from items are correlated,
         // e.g. "select from emp as emp join emp.getDepts() as dept".
@@ -4328,29 +4339,76 @@ public class SqlToRelConverter {
         final CorrelationId correlId = cluster.createCorrel();
         mapCorrelToDeferred.put(correlId, lookup);
         if (resolve.path.steps().get(0).i < 0) {
-          return Pair.of(rexBuilder.makeCorrel(rowType, correlId), null);
+          RelDataType outRowType = rowType;
+          if (isCorRefAggScope && !isCorFieldInAgg) {
+            AggregatingSelectScope aggScope = (AggregatingSelectScope) corRefScope;
+            final RelDataTypeFactory.Builder builder = typeFactory.builder();
+            for (SqlNode group : aggScope.resolved.get().groupExprList) {
+              String name = Util.last(((SqlIdentifier) group).names);
+              int idx = rowType.getFieldNames().indexOf(name);
+              Preconditions.checkArgument(idx >= 0);
+              builder.add(name, rowType.getFieldList().get(idx).getType());
+            }
+            outRowType = builder.build();
+          }
+          return Pair.of(rexBuilder.makeCorrel(outRowType, correlId), null);
         } else {
           final RelDataTypeFactory.Builder builder = typeFactory.builder();
           final ListScope ancestorScope1 = (ListScope) resolve.scope;
           final ImmutableMap.Builder<String, Integer> fields =
               ImmutableMap.builder();
-          int i = 0;
-          int offset = 0;
-          for (SqlValidatorNamespace c : ancestorScope1.getChildren()) {
-            builder.addAll(c.getRowType().getFieldList());
-            if (i == resolve.path.steps().get(0).i) {
-              for (RelDataTypeField field : c.getRowType().getFieldList()) {
-                fields.put(field.getName(), field.getIndex() + offset);
+          if (isCorRefAggScope && !isCorFieldInAgg) {
+            AggregatingSelectScope aggScope = (AggregatingSelectScope) corRefScope;
+            int i = 0;
+            for (SqlNode group : aggScope.resolved.get().groupExprList) {
+              SqlIdentifier id = (SqlIdentifier) group;
+              String name = Util.last(id.names);
+              builder.add(name, getFieldType(id, ancestorScope1));
+              if (id.names.equals(qualified.identifier.names)) {
+                fields.put(name, i);
               }
+              ++i;
             }
-            ++i;
-            offset += c.getRowType().getFieldCount();
+          } else {
+            int i = 0;
+            int offset = 0;
+            for (SqlValidatorNamespace c : ancestorScope1.getChildren()) {
+              builder.addAll(c.getRowType().getFieldList());
+              if (i == resolve.path.steps().get(0).i) {
+                for (RelDataTypeField field : c.getRowType().getFieldList()) {
+                  fields.put(field.getName(), field.getIndex() + offset);
+                }
+              }
+              ++i;
+              offset += c.getRowType().getFieldCount();
+            }
           }
           final RexNode c =
               rexBuilder.makeCorrel(builder.uniquify().build(), correlId);
           return Pair.of(c, fields.build());
         }
       }
+    }
+
+    private RelDataType getFieldType(
+        SqlIdentifier id, ListScope ancestorScope) {
+      for (SqlValidatorNamespace ns : ancestorScope.getChildren()) {
+        String prefix = id.names.get(0);
+        String fieldName = Util.last(id.names);
+        String alias =
+            SqlValidatorUtil.getAlias(ns.getEnclosingNode(), -1);
+        if (alias == null) {
+          throw new IllegalArgumentException(
+              "can not get alias: " + id.toString());
+        }
+        if (alias.equals(prefix)) {
+          int idx = ns.getRowType().getFieldNames().indexOf(fieldName);
+          Preconditions.checkArgument(idx >= 0);
+          return ns.getRowType().getFieldList().get(idx).getType();
+        }
+      }
+      throw new IllegalArgumentException(
+          id.toString() + " can not be found in any namespaces");
     }
 
     /**

@@ -3915,6 +3915,46 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
+  @Test public void testDecorrelateWithHavingAgg() {
+    final String sql = "select ename\n"
+        + "from sales.emp\n"
+        + "group by ename, deptno\n"
+        + "having max(sal) <= \n"
+        + "  (select max(sal) from sales.emp_b where\n"
+        + "emp.deptno = emp_b.deptno group by ename)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void testDecorrelateWithHavingAgg2() {
+    final String sql = "select ename\n"
+        + "from sales.emp\n"
+        + "group by ename, deptno\n"
+        + "having max(sal) <= \n"
+        + "  (select min(emp.comm) from sales.emp_b)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test public void testDecorrelateWithHavingAgg3() {
+    final String sql = "select ename, e.deptno, d.deptno\n"
+        + "from emp e, dept d where e.deptno = d.deptno\n"
+        + "group by ename, e.deptno, d.deptno\n"
+        + "having max(sal) <= \n"
+        + " (select max(sal) from sales.emp_b where\n"
+        + "   d.deptno = emp_b.deptno group by ename)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test public void testDecorrelateWithHavingAgg4() {
+    final String sql = "select ename, emp.deptno, dept.deptno\n"
+        + "from sales.emp, sales.dept where emp.deptno = dept.deptno\n"
+        + "group by ename, sales.dept.deptno, emp.deptno\n"
+        + "having max(sal) <= \n"
+        + " (select max(sal) from sales.emp_b where\n"
+        + "   dept.deptno = emp_b.deptno group by ename)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1494">[CALCITE-1494]
    * Inefficient plan for correlated sub-queries</a>. In "planAfter", there

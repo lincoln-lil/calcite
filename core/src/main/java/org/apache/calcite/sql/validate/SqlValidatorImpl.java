@@ -2849,6 +2849,49 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return aggFinder.findAgg(selectNode) != null;
   }
 
+  /**
+   * If the SqlIdentifier matches the following conditions:
+   * <ol>
+   *   <li>is correlate variable,</li>
+   *   <li>is in having scope,</li>
+   * </ol>
+   * returns the referenced AggregatingSelectScope, else the resolved scope.
+   */
+  public SqlValidatorScope getCorRefScope(
+      SqlIdentifier corId, SqlValidatorScope scope) {
+    SqlValidatorScope ancestorScope =
+        SqlValidatorUtil.findIdentifierScope(corId, scope);
+    if (ancestorScope == scope) {
+      return ancestorScope;
+    }
+    if (mapCorRefScopeToAggScope.containsKey(ancestorScope)) {
+      return mapCorRefScopeToAggScope.get(ancestorScope);
+    } else {
+      return ancestorScope;
+    }
+  }
+
+  /**
+   * If the SqlIdentifier matches the following conditions:
+   * <ol>
+   *   <li>is correlate variable,</li>
+   *   <li>is not in aggregator</li>
+   * </ol>
+   * return true, else false.
+   */
+  public boolean isCorFieldInAggregator(
+      SqlIdentifier corId, SqlValidatorScope scope) {
+    SqlValidatorScope ancestorScope =
+        SqlValidatorUtil.findIdentifierScope(corId, scope);
+    if (ancestorScope == scope) {
+      return false;
+    } else {
+      return (sqlNodesInAgg.contains(corId)
+          || hasScopeInAgg(scope, ancestorScope))
+          && mapCorRefScopeToAggScope.containsKey(ancestorScope);
+    }
+  }
+
   private void validateNodeFeature(SqlNode node) {
     switch (node.getKind()) {
     case MULTISET_VALUE_CONSTRUCTOR:
