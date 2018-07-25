@@ -127,6 +127,7 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -289,6 +290,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private TypeCoercion typeCoercion;
 
   private boolean enableTypeCoercion;
+
+  /**
+   * Maps a aggregating parent scope to the aggregating scope used by its SELECT and HAVING
+   * clauses. This will be used to find the AggregatingSelectScope
+   * through correlated variable's identifier scope.
+   */
+  private final Map<SqlValidatorScope, AggregatingSelectScope> mapCorRefScopeToAggScope =
+      new IdentityHashMap<>();
+
+  /**
+   * Stores {@link SqlNode}s that are in aggregator.
+   */
+  private final Set<SqlNode> sqlNodesInAgg = Sets.newIdentityHashSet();
+
+  /**
+   * Stores {@link SqlSelect}s' scope that are in aggregator.
+   */
+  private final Set<SqlValidatorScope> scopesInAgg = Sets.newIdentityHashSet();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -2900,6 +2919,44 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     registerSubQueries(parentScope, operand);
   }
 
+  private void registerSubQueriesInAggregatingScope(
+      SqlValidatorScope scope,
+      SqlNode node) {
+    if (!(scope instanceof AggregatingSelectScope) || node == null) {
+      return;
+    }
+    final AggregatingSelectScope aggregatingScope = (AggregatingSelectScope) scope;
+    final Deque<SqlCall> stack = new ArrayDeque<>();
+    node.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlCall call) {
+        if (call.isA(SqlKind.QUERY)) {
+          boolean inAgg = false;
+          Iterator<SqlCall> it = stack.descendingIterator();
+          while (it.hasNext()) {
+            SqlCall parent = it.next();
+            if (parent.getOperator().isAggregator()) {
+              inAgg = true;
+              break;
+            }
+          }
+          if (inAgg) {
+            // if the SubQuery in agg, stores it to sqlNodesInAgg
+            // e.g. select sum(select sal from emp2 where emp1.ename = emp2.ename)
+            // from emp1 group by deptno
+            sqlNodesInAgg.add(call);
+          }
+          mapCorRefScopeToAggScope.put(aggregatingScope.getParent(), aggregatingScope);
+          return null;
+        } else {
+          stack.push(call);
+          super.visit(call);
+          stack.pop();
+          return null;
+        }
+      }
+    });
+  }
+
   public void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope) {
     final SqlQualified fqId = scope.fullyQualify(id);
     if (expandColumnReferences) {
@@ -2909,6 +2966,64 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else {
       Util.discard(fqId);
     }
+
+    validateCorIdentifierInHaving(id, scope);
+  }
+
+  private void validateCorIdentifierInHaving(
+      SqlIdentifier id, SqlValidatorScope scope) {
+    if (!(scope instanceof SelectScope)) {
+      // ignore nodes from other scope
+      return;
+    }
+    // validate whether the correlated variables of SubQuery in having are in group by columns
+    // if identifier in agg, skip
+    // e.g. select ... from emp1 group by deptno
+    // having sum(sal) > select max(emp1.sal) from emp2 ...)
+    if (sqlNodesInAgg.contains(id)) {
+      return;
+    }
+    final SqlValidatorScope identifierScope =
+        SqlValidatorUtil.findIdentifierScope(id, scope);
+    if (identifierScope == null) {
+      return;
+    }
+    // if the Subquery is in agg, skip
+    if (hasScopeInAgg(scope, identifierScope)) {
+      return;
+    }
+
+    boolean isParent = identifierScope != scope;
+    if (isParent && mapCorRefScopeToAggScope.containsKey(identifierScope)) {
+      AggregatingScope aggScope = mapCorRefScopeToAggScope.get(identifierScope);
+      aggScope.checkAggregateExpr(id, true);
+    }
+  }
+
+  /**
+   * Traverses from the given scope until to the target scope,
+   * if any scope is in agg, return true, else false.
+   */
+  private boolean hasScopeInAgg(
+      SqlValidatorScope fromScope, SqlValidatorScope targetScope) {
+    SqlValidatorScope parentScope = fromScope;
+    while (parentScope != null) {
+      if (targetScope == parentScope) {
+        break;
+      }
+      // if the Subquery is in agg, return true
+      // e.g. select ... from emp1 group by deptno
+      // having sum(sal) > sum(select max(sal) from emp2 where emp1.ename = emp2.ename)
+      if (scopesInAgg.contains(parentScope)) {
+        return true;
+      }
+      if (parentScope instanceof DelegatingScope) {
+        parentScope = ((DelegatingScope) parentScope).getParent();
+      } else {
+        break;
+      }
+    }
+    return false;
   }
 
   public void validateLiteral(SqlLiteral literal) {
@@ -3325,6 +3440,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     } else {
       validateFrom(select.getFrom(), fromType, fromScope);
+    }
+
+    if (sqlNodesInAgg.contains(select)) {
+      scopesInAgg.add(fromScope);
     }
 
     validateWhereClause(select);
@@ -4062,6 +4181,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
     havingScope.checkAggregateExpr(having, true);
+    registerSubQueriesInAggregatingScope(havingScope, having);
     inferUnknownTypes(
         booleanType,
         havingScope,
@@ -4088,6 +4208,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     for (int i = 0; i < selectItems.size(); i++) {
       SqlNode selectItem = selectItems.get(i);
+      registerSubQueriesInAggregatingScope(selectScope, selectItem);
       if (selectItem instanceof SqlSelect) {
         handleScalarSubQuery(
             select,
@@ -5328,6 +5449,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw newValidationError(call,
           Static.RESOURCE.functionMatchRecognizeOnly(call.toString()));
     }
+
+    // TODO correlated variables are expr:
+    // SELECT empno + 1 FROM emp GROUP BY empno + 1 HAVING max(sal) <=
+    // (SELECT MAX(sal) FROM emp_b WHERE emp.empno + 1 = emp_b.empno GROUP BY empno)
+    boolean addChildOpsToWhitelist = sqlNodesInAgg.contains(call)
+        || call.getOperator().isAggregator();
+    if (addChildOpsToWhitelist) {
+      sqlNodesInAgg.addAll(call.getOperandList());
+    }
+
     // Delegate validation to the operator.
     operator.validateCall(call, this, scope, operandScope);
   }

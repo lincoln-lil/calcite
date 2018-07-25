@@ -660,6 +660,22 @@ public class SqlValidatorUtil {
     return null;
   }
 
+  public static SqlValidatorScope findIdentifierScope(
+      SqlIdentifier id, SqlValidatorScope scope) {
+    final SqlQualified qualified = scope.fullyQualify(id);
+    final SqlNameMatcher nameMatcher =
+        scope.getValidator().getCatalogReader().nameMatcher();
+    final SqlValidatorScope.ResolvedImpl resolved =
+        new SqlValidatorScope.ResolvedImpl();
+    scope.resolve(qualified.prefix(), nameMatcher, false, resolved);
+    if (!(resolved.count() == 1)) {
+      return null;
+    }
+
+    final SqlValidatorScope.Resolve resolve = resolved.only();
+    return resolve.scope;
+  }
+
   /**
    * Derives the list of column names suitable for NATURAL JOIN. These are the
    * columns that occur exactly once on each side of the join.
