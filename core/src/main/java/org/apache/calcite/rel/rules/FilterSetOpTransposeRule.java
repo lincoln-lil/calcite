@@ -31,8 +31,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import com.google.common.collect.Lists;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,8 +66,8 @@ public class FilterSetOpTransposeRule extends RelOptRule {
     Filter filterRel = call.rel(0);
     SetOp setOp = call.rel(1);
 
-    final List<RexNode> deterministicFilters = Lists.<RexNode>newArrayList();
-    final List<RexNode> nondeterministicFilters = Lists.<RexNode>newArrayList();
+    final List<RexNode> deterministicFilters = new ArrayList<>();
+    final List<RexNode> nondeterministicFilters = new ArrayList<>();
     for (RexNode expr : RelOptUtil.conjunctions(filterRel.getCondition())) {
       if (RexUtil.isDeterministic(expr)) {
         deterministicFilters.add(expr);

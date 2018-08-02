@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rules;
 
-import com.google.common.collect.Lists;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -41,8 +40,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-
-import static org.apache.calcite.plan.RelOptUtil.conjunctions;
 
 /**
  * Planner rule that pushes filters above and
@@ -119,7 +116,7 @@ public abstract class FilterJoinRule extends RelOptRule {
 
   protected void perform(RelOptRuleCall call, Filter filter,
       Join join) {
-    final List<RexNode> deterministicJoinFilters = Lists.<RexNode>newArrayList();
+    final List<RexNode> deterministicJoinFilters = new ArrayList<>();
     final ImmutableList.Builder<RexNode> nondeterministicJoinFiltersBuilder
         = ImmutableList.<RexNode>builder();
     for (RexNode expr : RelOptUtil.conjunctions(join.getCondition())) {
@@ -142,7 +139,7 @@ public abstract class FilterJoinRule extends RelOptRule {
       return;
     }
 
-    final List<RexNode> deterministicAboveFilters = Lists.<RexNode>newArrayList();
+    final List<RexNode> deterministicAboveFilters = new ArrayList<>();
     final ImmutableList.Builder<RexNode> nondeterministicAboveFiltersBuilder
         = ImmutableList.<RexNode>builder();
     if (filter != null) {

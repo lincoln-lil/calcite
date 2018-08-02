@@ -287,6 +287,23 @@ public abstract class SqlTypeUtil {
   }
 
   /**
+   * @return true if type is DATE
+   */
+  public static boolean isDate(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return type.getSqlTypeName() == SqlTypeName.DATE;
+  }
+  /**
+   * @return true if type is TIMESTAMP
+   */
+  public static boolean isTimestamp(RelDataType type) {
+    return SqlTypeFamily.TIMESTAMP.contains(type);
+  }
+
+  /**
    * @return true if type is some kind of INTERVAL
    */
   public static boolean isInterval(RelDataType type) {

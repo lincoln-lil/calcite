@@ -116,7 +116,7 @@ public class SqlValidatorTestCase {
 
   public final Sql sql(String sql, boolean typeCoercion) {
     SqlTester tester1 = tester.enableTypeCoercion(typeCoercion);
-    return new Sql(tester1, sql);
+    return new Sql(tester1, sql, true);
   }
 
   public final Sql winSql(String sql, boolean typeCoercion) {

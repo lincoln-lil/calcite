@@ -30,7 +30,6 @@ import org.apache.calcite.sql.test.DelegatingSqlTestFactory;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlTesterImpl;
-import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -45,7 +44,7 @@ import static org.junit.Assert.assertThat;
 /**
  * Base class for testing implicit type cast, mostly copied from SqlValidatorTestBase.
  */
-public abstract class TypeCoercionTestBase {
+public abstract class TypeCoercionTestCase {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final SqlTestFactory EXTENDED_TEST_FACTORY =
@@ -76,7 +75,7 @@ public abstract class TypeCoercionTestBase {
   /**
    * Creates a test base.
    */
-  TypeCoercionTestBase() {
+  TypeCoercionTestCase() {
     this.tester = getTester();
   }
 
@@ -90,8 +89,8 @@ public abstract class TypeCoercionTestBase {
     return new SqlTesterImpl(DefaultSqlTestFactory.INSTANCE);
   }
 
-  public final TypeCoercionTestBase.Sql sql(String sql) {
-    return new TypeCoercionTestBase.Sql(tester, sql);
+  public final TypeCoercionTestCase.Sql sql(String sql) {
+    return new TypeCoercionTestCase.Sql(tester, sql);
   }
 
   public void check(String sql) {
@@ -371,37 +370,37 @@ public abstract class TypeCoercionTestBase {
       this.sql = sql;
     }
 
-    TypeCoercionTestBase.Sql tester(SqlTester tester) {
-      return new TypeCoercionTestBase.Sql(tester, sql);
+    TypeCoercionTestCase.Sql tester(SqlTester tester) {
+      return new TypeCoercionTestCase.Sql(tester, sql);
     }
 
-    public TypeCoercionTestBase.Sql sql(String sql) {
-      return new TypeCoercionTestBase.Sql(tester, sql);
+    public TypeCoercionTestCase.Sql sql(String sql) {
+      return new TypeCoercionTestCase.Sql(tester, sql);
     }
 
-    TypeCoercionTestBase.Sql withExtendedCatalog() {
+    TypeCoercionTestCase.Sql withExtendedCatalog() {
       return tester(EXTENDED_CATALOG_TESTER);
     }
 
-    TypeCoercionTestBase.Sql withExtendedCatalog2003() {
+    TypeCoercionTestCase.Sql withExtendedCatalog2003() {
       return tester(EXTENDED_CATALOG_TESTER_2003);
     }
 
-    TypeCoercionTestBase.Sql withExtendedCatalogLenient() {
+    TypeCoercionTestCase.Sql withExtendedCatalogLenient() {
       return tester(EXTENDED_CATALOG_TESTER_LENIENT);
     }
 
-    TypeCoercionTestBase.Sql ok() {
+    TypeCoercionTestCase.Sql ok() {
       tester.assertExceptionIsThrown(sql, null);
       return this;
     }
 
-    TypeCoercionTestBase.Sql fails(String expected) {
+    TypeCoercionTestCase.Sql fails(String expected) {
       tester.assertExceptionIsThrown(sql, expected);
       return this;
     }
 
-    TypeCoercionTestBase.Sql failsIf(boolean b, String expected) {
+    TypeCoercionTestCase.Sql failsIf(boolean b, String expected) {
       if (b) {
         fails(expected);
       } else {
@@ -410,46 +409,42 @@ public abstract class TypeCoercionTestBase {
       return this;
     }
 
-    public TypeCoercionTestBase.Sql type(String expectedType) {
+    public TypeCoercionTestCase.Sql type(String expectedType) {
       tester.checkResultType(sql, expectedType);
       return this;
     }
 
-    public TypeCoercionTestBase.Sql type(String expectedType, boolean typeCoercion) {
+    public TypeCoercionTestCase.Sql type(String expectedType, boolean typeCoercion) {
       SqlTester tester1 = tester.enableTypeCoercion(typeCoercion);
       tester1.checkResultType(sql, expectedType);
       return this;
     }
 
-    public TypeCoercionTestBase.Sql columnType(String expectedType) {
+    public TypeCoercionTestCase.Sql columnType(String expectedType) {
       tester.checkColumnType(sql, expectedType);
       return this;
     }
 
-    public TypeCoercionTestBase.Sql monotonic(SqlMonotonicity expectedMonotonicity) {
+    public TypeCoercionTestCase.Sql monotonic(SqlMonotonicity expectedMonotonicity) {
       tester.checkMonotonic(sql, expectedMonotonicity);
       return this;
     }
 
-    public TypeCoercionTestBase.Sql bindType(final String bindType) {
-      tester.check(sql, null,
-          new SqlTester.ParameterChecker() {
-            public void checkParameters(RelDataType parameterRowType) {
-              assertThat(parameterRowType.toString(), is(bindType));
-            }
-          },
-          SqlTests.ANY_RESULT_CHECKER);
+    public TypeCoercionTestCase.Sql bindType(final String bindType) {
+      tester.check(sql, null, parameterRowType ->
+              assertThat(parameterRowType.toString(), is(bindType)),
+          result -> { });
       return this;
     }
 
     /** Removes the carets from the SQL string. Useful if you want to run
      * a test once at a conformance level where it fails, then run it again
      * at a conformance level where it succeeds. */
-    public TypeCoercionTestBase.Sql sansCarets() {
-      return new TypeCoercionTestBase.Sql(tester, sql.replace("^", ""));
+    public TypeCoercionTestCase.Sql sansCarets() {
+      return new TypeCoercionTestCase.Sql(tester, sql.replace("^", ""));
     }
   }
 
 }
 
-// End TypeCoercionTestBase.java
+// End TypeCoercionTestCase.java

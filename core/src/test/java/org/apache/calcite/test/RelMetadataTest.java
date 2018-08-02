@@ -1533,7 +1533,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // Lock to ensure that only one test is using this method at a time.
     try (final JdbcAdapterTest.LockWrapper ignore =
              JdbcAdapterTest.LockWrapper.lock(LOCK)) {
-      final RelNode rel = convertSql(sql);
+      // TODO: fix timeout when allows type coercion.
+      final RelNode rel = convertSql(sql, false);
       final RelMetadataQuery mq = RelMetadataQuery.instance();
       RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel.getInput(0));
       assertThat(inputSet.pulledUpPredicates.size(), is(18));

@@ -4000,7 +4000,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public void setTypeCoercion(TypeCoercion typeCoercion) {
-    Preconditions.checkNotNull(typeCoercion);
+    Objects.requireNonNull(typeCoercion);
     this.typeCoercion = typeCoercion;
   }
 

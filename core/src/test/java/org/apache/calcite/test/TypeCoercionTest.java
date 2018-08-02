@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -38,13 +37,11 @@ import org.apache.calcite.sql.validate.implicit.AbstractTypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
 import java.util.List;
-import javax.annotation.Nullable;
 
 import static org.apache.calcite.test.SqlToRelTestBase.assertValid;
 
@@ -57,7 +54,7 @@ import static org.junit.Assert.assertTrue;
  * Test cases for implicit type coercion. see {@link TypeCoercion} doc
  * or <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a> for conversion details.
  */
-public class TypeCoercionTest extends TypeCoercionTestBase {
+public class TypeCoercionTest extends TypeCoercionTestCase {
   private TypeCoercion typeCoercion;
   private RelDataTypeFactory dataTypeFactory;
 
@@ -108,11 +105,7 @@ public class TypeCoercionTest extends TypeCoercionTestBase {
     final SqlToRelTestBase testBase = new SqlToRelTestBase() { };
     // sql to rel tester.
     tester2 = testBase.createTester().withCatalogReaderFactory(
-        new Function<RelDataTypeFactory, Prepare.CatalogReader>() {
-          @Nullable @Override public Prepare.CatalogReader apply(RelDataTypeFactory factory) {
-            return new TCatalogReader(factory).init();
-          }
-        });
+        factory -> new TCatalogReader(factory).init());
   }
   //~ fields initialize ------------------------------------------------------
   private void initializeSingleTypes() {
@@ -582,18 +575,18 @@ public class TypeCoercionTest extends TypeCoercionTestBase {
             + "  LogicalValues(tuples=[[{ true }]])\n");
     checkPlanEquals(
         "select (1, 2) in (select '1', '2' from (values (true, true))) from (values true)",
-        "LogicalProject(EXPR$0=[CAST(CASE(=($1, 0), false, IS NOT NULL($7), true,"
-            + " IS NULL($3), null, IS NULL($4), null, <($2, $1), null, false)):BOOLEAN NOT NULL])\n"
+        "LogicalProject(EXPR$0=[CAST(CASE(=($1, 0), false, IS NOT NULL($7), true, "
+            + "IS NULL($3), null, IS NULL($4), null, <($2, $1), null, false)):BOOLEAN NOT NULL])\n"
             + "  LogicalJoin(condition=[AND(=($3, $5), =($4, $6))], joinType=[left])\n"
-            + "    LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[1], $f4=[2])\n"
+            + "    LogicalProject(EXPR$0=[$0], $f0=[$1], $f1=[$2], $f3=[1], $f4=[2])\n"
             + "      LogicalJoin(condition=[true], joinType=[inner])\n"
             + "        LogicalValues(tuples=[[{ true }]])\n"
             + "        LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0, $1)])\n"
-            + "          LogicalProject($f0=[$0], $f1=[$1], $f2=[true])\n"
+            + "          LogicalProject(EXPR$0=[$0], EXPR$1=[$1], $f2=[true])\n"
             + "            LogicalProject(EXPR$0=[1], EXPR$1=[2])\n"
             + "              LogicalValues(tuples=[[{ true, true }]])\n"
             + "    LogicalAggregate(group=[{0, 1}], agg#0=[MIN($2)])\n"
-            + "      LogicalProject($f0=[$0], $f1=[$1], $f2=[true])\n"
+            + "      LogicalProject(EXPR$0=[$0], EXPR$1=[$1], $f2=[true])\n"
             + "        LogicalProject(EXPR$0=[1], EXPR$1=[2])\n"
             + "          LogicalValues(tuples=[[{ true, true }]])\n");
     checkPlanEquals(

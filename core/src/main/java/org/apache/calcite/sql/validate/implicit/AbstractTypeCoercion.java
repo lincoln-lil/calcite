@@ -37,7 +37,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -45,6 +44,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Base class for all the type coercion, extending of this class is not necessary, but will have
@@ -66,7 +66,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
 
   //~ Constructors -----------------------------------------------------------
   AbstractTypeCoercion(SqlValidator validator) {
-    Preconditions.checkNotNull(validator);
+    Objects.requireNonNull(validator);
     this.validator = validator;
     this.factory = validator.getTypeFactory();
   }
@@ -516,8 +516,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
   }
 
   private List<RelDataType> partitionByCharacter(List<RelDataType> types) {
-    List<RelDataType> withCharacterTypes = Lists.newArrayList();
-    List<RelDataType> nonCharacterTypes = Lists.newArrayList();
+    List<RelDataType> withCharacterTypes = new ArrayList<>();
+    List<RelDataType> nonCharacterTypes = new ArrayList<>();
 
     for (RelDataType tp : types) {
       if (SqlTypeUtil.hasCharacter(tp)) {
@@ -527,7 +527,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       }
     }
 
-    List<RelDataType> partitioned = Lists.newArrayList();
+    List<RelDataType> partitioned = new ArrayList<>();
     partitioned.addAll(withCharacterTypes);
     partitioned.addAll(nonCharacterTypes);
     return partitioned;

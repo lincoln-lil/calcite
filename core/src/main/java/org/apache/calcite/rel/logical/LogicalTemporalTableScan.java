@@ -28,10 +28,10 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.Table;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * A <code>LogicalTemporalTableScan</code> reads the rows from a table for a point-in-time.

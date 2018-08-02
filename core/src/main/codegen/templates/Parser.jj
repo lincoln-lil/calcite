@@ -1345,7 +1345,7 @@ SqlNode SqlInsert() :
 SqlEmit EmitSpecification() :
 {
     final Span s;
-    final List<SqlNode> strategies = Lists.newArrayList();
+    final List<SqlNode> strategies = new ArrayList();
     SqlNode strategy;
 }
 {
