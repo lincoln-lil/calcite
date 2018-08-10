@@ -91,6 +91,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.rel.metadata.RelMdUtil.clearCache;
+
 /**
  * VolcanoPlanner optimizes queries by transforming expressions selectively
  * according to a dynamic programming algorithm.
@@ -858,10 +860,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
     final RelSubset subset = registerImpl(rel, set);
 
-    // FIXME https://aone.alibaba-inc.com/task/14681173
-    // if (LOGGER.isDebugEnabled()) {
-    //  validate();
-    // }
+    if (LOGGER.isDebugEnabled()) {
+      validate();
+    }
 
     return subset;
   }
@@ -898,13 +899,17 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               + "] is in wrong set [" + set + "]");
         }
         for (RelNode rel : subset.getRels()) {
-          RelOptCost relCost = getCost(rel, rel.getCluster().getMetadataQuery());
-          if (relCost.isLt(subset.bestCost)) {
-            throw new AssertionError(
-                "rel [" + rel.getDescription()
-                + "] has lower cost " + relCost
-                + " than best cost " + subset.bestCost
-                + " of subset [" + subset.getDescription() + "]");
+          // FIXME https://issues.apache.org/jira/browse/CALCITE-2166,
+          // https://aone.alibaba-inc.com/task/16508844
+          if (rel != subset.best) {
+            RelOptCost relCost = getCost(rel, rel.getCluster().getMetadataQuery());
+            if (relCost.isLt(subset.bestCost)) {
+              throw new AssertionError(
+                      "rel [" + rel.getDescription()
+                      + "] has lower cost " + relCost
+                      + " than best cost " + subset.bestCost
+                      + " of subset [" + subset.getDescription() + "]");
+            }
           }
         }
       }
@@ -1372,6 +1377,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
       }
     }
+    clearCache(rel);
     return changeCount > 0;
   }
 
