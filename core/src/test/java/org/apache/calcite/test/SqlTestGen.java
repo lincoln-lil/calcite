@@ -98,7 +98,7 @@ public class SqlTestGen {
 
     public SqlTester getTester() {
       final SqlTestFactory factory =
-          new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
+          new DelegatingSqlTestFactory(new DefaultSqlTestFactory()) {
             @Override public SqlValidator getValidator(SqlTestFactory factory) {
               return (SqlValidator) Proxy.newProxyInstance(
                   SqlValidatorSpooler.class.getClassLoader(),

@@ -1240,7 +1240,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   /** Factory that creates testers. */
   private static class AdvisorTesterFactory extends DelegatingSqlTestFactory {
     AdvisorTesterFactory() {
-      super(DefaultSqlTestFactory.INSTANCE);
+      super(new DefaultSqlTestFactory());
     }
 
     @Override public SqlValidator getValidator(SqlTestFactory factory) {

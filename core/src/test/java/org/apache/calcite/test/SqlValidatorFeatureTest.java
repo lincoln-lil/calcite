@@ -128,7 +128,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   /** Factory for tester objects. */
   private class FeatureTesterFactory extends DelegatingSqlTestFactory {
     FeatureTesterFactory() {
-      super(DefaultSqlTestFactory.INSTANCE);
+      super(new DefaultSqlTestFactory());
     }
 
     @Override public SqlValidator getValidator(SqlTestFactory factory) {

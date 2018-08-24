@@ -64,23 +64,24 @@ public class SqlValidatorTestCase {
       Pattern.compile(
           "(?s)From line ([0-9]+), column ([0-9]+) to line ([0-9]+), column ([0-9]+): (.*)");
 
-  private static final SqlTestFactory EXTENDED_TEST_FACTORY =
-      new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
-        @Override public MockCatalogReader createCatalogReader(
-            SqlTestFactory factory, JavaTypeFactory typeFactory) {
-          return super.createCatalogReader(this, typeFactory).init2();
-        }
-      };
+  private static DelegatingSqlTestFactory newExtendedTestFactory() {
+    return new DelegatingSqlTestFactory(new DefaultSqlTestFactory()) {
+      @Override public MockCatalogReader createCatalogReader(
+          SqlTestFactory factory, JavaTypeFactory typeFactory) {
+        return super.createCatalogReader(this, typeFactory).init2();
+      }
+    };
+  }
 
   static final SqlTesterImpl EXTENDED_CATALOG_TESTER =
-      new SqlTesterImpl(EXTENDED_TEST_FACTORY);
+      new SqlTesterImpl(newExtendedTestFactory());
 
   static final SqlTesterImpl EXTENDED_CATALOG_TESTER_2003 =
-      new SqlTesterImpl(EXTENDED_TEST_FACTORY)
+      new SqlTesterImpl(newExtendedTestFactory())
           .withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
   static final SqlTesterImpl EXTENDED_CATALOG_TESTER_LENIENT =
-      new SqlTesterImpl(EXTENDED_TEST_FACTORY)
+      new SqlTesterImpl(newExtendedTestFactory())
           .withConformance(SqlConformanceEnum.LENIENT);
 
   //~ Instance fields --------------------------------------------------------
@@ -103,7 +104,7 @@ public class SqlValidatorTestCase {
    * same set of tests in a different testing environment.
    */
   public SqlTester getTester() {
-    return new SqlTesterImpl(DefaultSqlTestFactory.INSTANCE);
+    return new SqlTesterImpl(new DefaultSqlTestFactory());
   }
 
   public final Sql sql(String sql) {

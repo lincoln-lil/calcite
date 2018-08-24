@@ -74,12 +74,9 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
    * Caching improves SqlValidatorTest from 23s to 8s,
    * and CalciteSqlOperatorTest from 65s to 43s. */
   private final LoadingCache<SqlTestFactory, Xyz> cache =
-      CacheBuilder.newBuilder().build(CacheLoader.from(Xyz::from));
+      CacheBuilder.newBuilder().weakKeys().build(CacheLoader.from(Xyz::from));
 
-  public static final DefaultSqlTestFactory INSTANCE =
-      new DefaultSqlTestFactory();
-
-  private DefaultSqlTestFactory() {
+  public DefaultSqlTestFactory() {
   }
 
   public MockCatalogReader createCatalogReader(SqlTestFactory testFactory,

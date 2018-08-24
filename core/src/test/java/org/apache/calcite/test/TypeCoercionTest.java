@@ -95,7 +95,7 @@ public class TypeCoercionTest extends TypeCoercionTestCase {
   //~ Constructors -----------------------------------------------------------
   public TypeCoercionTest() {
     // tool tester impl.
-    SqlTester tester1 = new SqlTesterImpl(DefaultSqlTestFactory.INSTANCE);
+    SqlTester tester1 = new SqlTesterImpl(new DefaultSqlTestFactory());
     this.typeCoercion = tester1.getValidator().getTypeCoercion();
     this.dataTypeFactory = tester1.getValidator().getTypeFactory();
     initializeSingleTypes();
@@ -908,7 +908,7 @@ public class TypeCoercionTest extends TypeCoercionTestCase {
   }
 
   @Override public SqlTester getTester() {
-    return new SqlTesterImpl(new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
+    return new SqlTesterImpl(new DelegatingSqlTestFactory(new DefaultSqlTestFactory()) {
       @Override public MockCatalogReader createCatalogReader(
           SqlTestFactory factory, JavaTypeFactory typeFactory) {
         return new TCatalogReader(typeFactory).init();
