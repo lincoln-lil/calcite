@@ -471,15 +471,19 @@ public class RexSimplify {
     }
     switch (a.getKind()) {
     case NOT:
-      // (NOT x) IS TRUE ==> x IS FALSE
-      // Similarly for IS NOT TRUE, IS FALSE, etc.
-      //
-      // Note that
-      //   (NOT x) IS TRUE !=> x IS FALSE
-      // because of null values.
-      final SqlOperator notKind = RexUtil.op(kind.negateNullSafe());
-      final RexNode arg = ((RexCall) a).operands.get(0);
-      return simplify_(rexBuilder.makeCall(notKind, arg));
+      // (NOT x) IS NUll !=> x IS NOT NULL
+      if (kind != SqlKind.IS_NULL) {
+        // (NOT x) IS TRUE ==> x IS FALSE
+        // Similarly for IS NOT TRUE, IS FALSE, etc.
+        //
+        // Note that
+        //   (NOT x) IS TRUE !=> x IS FALSE
+        // because of null values.
+        final SqlOperator notKind = RexUtil.op(kind.negateNullSafe());
+        final RexNode arg = ((RexCall) a).operands.get(0);
+        return simplify_(rexBuilder.makeCall(notKind, arg));
+      }
+      break;
     }
     RexNode a2 = simplify_(a);
     if (a != a2) {

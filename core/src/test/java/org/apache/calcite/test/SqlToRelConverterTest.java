@@ -2886,6 +2886,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(tester).ok();
   }
 
+  @Test public void testSimplifyNotNull() {
+    // "is null(not xxx)" can't be simplified into be is not null(xxx).
+    final String sql = "select cast(null as varchar) not like 'xxx' is null";
+    sql(sql).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *

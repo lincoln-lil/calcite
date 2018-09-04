@@ -3432,6 +3432,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean(
         "cast(null as boolean) is null",
         Boolean.TRUE);
+    tester.checkBoolean("cast(null as integer) not in (0) is null", Boolean.TRUE);
   }
 
   @Test public void testIsNotTrueOperator() {

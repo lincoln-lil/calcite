@@ -5443,4 +5443,15 @@ LogicalProject(ANYEMPNO=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSimplifyNotNull">
+        <Resource name="sql">
+            <![CDATA[SELECT cast(null as varchar) not like 'xxx' is null]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[IS NULL(NOT(LIKE(null, 'xxx')))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
