@@ -1290,6 +1290,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test(expected = RuntimeException.class)
+  public void testCorrelatedOnProject() {
+    final String sql = "select ("
+        + "select min(deptno) from dept where dept.deptno = emp.deptno) from emp";
+    sql(sql).expand(false).ok();
+  }
+
+  @Test public void testUncorrelatedOnProject() {
+    final String sql = "select (select min(deptno) from dept) from emp";
+    sql(sql).expand(false).ok();
+  }
+
   @Test public void testInUncorrelatedSubQueryRex() {
     final String sql = "select empno from emp where deptno in"
         + " (select deptno from dept)";

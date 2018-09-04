@@ -3888,7 +3888,13 @@ public class SqlToRelConverter {
 
     relBuilder.push(bb.root)
         .projectNamed(exprs, fieldNames, true);
-    bb.setRoot(relBuilder.build(), false);
+    final RelNode project = relBuilder.build();
+    final CorrelationUse p = getCorrelationUse(bb, project);
+    if (p != null) {
+      throw new RuntimeException("correlation on project is not supported now");
+    }
+
+    bb.setRoot(project, false);
 
     assert bb.columnMonotonicities.isEmpty();
     bb.columnMonotonicities.addAll(columnMonotonicityList);
