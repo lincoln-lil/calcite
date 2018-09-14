@@ -20,17 +20,20 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.ConfigurableTable;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlProperty;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,17 +44,19 @@ import static org.apache.calcite.util.Static.RESOURCE;
 class TableNamespace extends AbstractNamespace {
   private final SqlValidatorTable table;
   public final ImmutableList<RelDataTypeField> extendedFields;
+  public final Map<String, String> tableHints;
 
   /** Creates a TableNamespace. */
   private TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table,
-      List<RelDataTypeField> fields) {
+      List<RelDataTypeField> fields, Map<String, String> tableHints) {
     super(validator, null);
     this.table = Objects.requireNonNull(table);
     this.extendedFields = ImmutableList.copyOf(fields);
+    this.tableHints = new HashMap<>(tableHints);
   }
 
   TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table) {
-    this(validator, table, ImmutableList.of());
+    this(validator, table, ImmutableList.of(), new HashMap<>());
   }
 
   protected RelDataType validateImpl(RelDataType targetRowType) {
@@ -106,9 +111,31 @@ class TableNamespace extends AbstractNamespace {
           ((RelOptTable) table).extend(extendedFields);
       final SqlValidatorTable validatorTable =
           relOptTable.unwrap(SqlValidatorTable.class);
-      return new TableNamespace(validator, validatorTable, ImmutableList.of());
+      return new TableNamespace(validator, validatorTable, ImmutableList.of(), tableHints);
     }
-    return new TableNamespace(validator, table, extendedFields);
+    return new TableNamespace(validator, table, extendedFields, tableHints);
+  }
+
+  public SqlValidatorNamespace config(SqlNodeList tableHints) {
+    final Table schemaTable = table.unwrap(Table.class);
+    if (schemaTable != null
+            && table instanceof RelOptTable
+            && (schemaTable instanceof ConfigurableTable)
+            && tableHints != null && tableHints.size() > 0) {
+      assert table != null;
+      assert this.tableHints.isEmpty();
+      Map<String, String> paramMap = new HashMap<>();
+      for (SqlNode node : tableHints.getList()) {
+        SqlProperty property = (SqlProperty) node;
+        paramMap.put(property.getKeyString(), property.getValueString());
+      }
+      final RelOptTable relOptTable =
+              ((RelOptTable) table).config(paramMap);
+      final SqlValidatorTable validatorTable =
+              relOptTable.unwrap(SqlValidatorTable.class);
+      return new TableNamespace(validator, validatorTable, ImmutableList.of(), paramMap);
+    }
+    return new TableNamespace(validator, table, extendedFields, this.tableHints);
   }
 
   /**
@@ -162,6 +189,7 @@ class TableNamespace extends AbstractNamespace {
       }
     }
   }
+
 }
 
 // End TableNamespace.java

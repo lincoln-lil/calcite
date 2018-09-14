@@ -45,6 +45,7 @@ public class IdentifierNamespace extends AbstractNamespace {
   private final SqlIdentifier id;
   private final SqlValidatorScope parentScope;
   public final SqlNodeList extendList;
+  public final SqlNodeList tableHints;
 
   /**
    * The underlying namespace. Often a {@link TableNamespace}.
@@ -69,30 +70,37 @@ public class IdentifierNamespace extends AbstractNamespace {
    * @param parentScope   Parent scope which this namespace turns to in order to
    */
   IdentifierNamespace(SqlValidatorImpl validator, SqlIdentifier id,
-      @Nullable SqlNodeList extendList, SqlNode enclosingNode,
+      @Nullable SqlNodeList extendList, @Nullable SqlNodeList tableHints, SqlNode enclosingNode,
       SqlValidatorScope parentScope) {
     super(validator, enclosingNode);
     this.id = id;
     this.extendList = extendList;
+    this.tableHints = tableHints;
     this.parentScope = Objects.requireNonNull(parentScope);
   }
 
   IdentifierNamespace(SqlValidatorImpl validator, SqlNode node,
       SqlNode enclosingNode, SqlValidatorScope parentScope) {
-    this(validator, split(node).left, split(node).right, enclosingNode,
-        parentScope);
+    this(
+        validator, split(node).left, split(node).right.left,
+        split(node).right.right, enclosingNode, parentScope);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  protected static Pair<SqlIdentifier, SqlNodeList> split(SqlNode node) {
+  protected static Pair<SqlIdentifier, Pair<SqlNodeList, SqlNodeList>> split(SqlNode node) {
+    SqlCall call;
     switch (node.getKind()) {
     case EXTEND:
-      final SqlCall call = (SqlCall) node;
+      call = (SqlCall) node;
       return Pair.of((SqlIdentifier) call.getOperandList().get(0),
-          (SqlNodeList) call.getOperandList().get(1));
+          Pair.of((SqlNodeList) call.getOperandList().get(1), null));
+    case CONFIGURABLE:
+      call = (SqlCall) node;
+      return Pair.of((SqlIdentifier) call.getOperandList().get(0),
+          Pair.of(null, (SqlNodeList) call.getOperandList().get(1)));
     default:
-      return Pair.of((SqlIdentifier) node, null);
+      return Pair.of((SqlIdentifier) node, Pair.of(null, null));
     }
   }
 
@@ -211,6 +219,15 @@ public class IdentifierNamespace extends AbstractNamespace {
       resolvedNamespace =
           ((TableNamespace) resolvedNamespace).extend(extendList);
       rowType = resolvedNamespace.getRowType();
+    }
+
+    if (tableHints != null) {
+      if (!(resolvedNamespace instanceof TableNamespace)) {
+        throw new RuntimeException("cannot convert");
+      }
+      resolvedNamespace =
+              ((TableNamespace) resolvedNamespace).config(tableHints);
+      assert rowType == resolvedNamespace.getRowType();
     }
 
     // Build a list of monotonic expressions.

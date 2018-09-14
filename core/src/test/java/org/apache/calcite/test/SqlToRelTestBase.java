@@ -69,6 +69,7 @@ import com.google.common.collect.Iterables;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -478,6 +479,10 @@ public abstract class SqlToRelTestBase {
                 .build();
         return new MockColumnSet(names, extendedRowType, collationList);
       }
+
+      public RelOptTable config(Map<String, String> parameters) {
+        return this;
+      }
     }
   }
 
@@ -502,6 +507,10 @@ public abstract class SqlToRelTestBase {
 
     public RelOptTable extend(List<RelDataTypeField> extendedFields) {
       return parent.extend(extendedFields);
+    }
+
+    public RelOptTable config(Map<String, String> parameters) {
+      return parent.config(parameters);
     }
 
     public List<String> getQualifiedName() {

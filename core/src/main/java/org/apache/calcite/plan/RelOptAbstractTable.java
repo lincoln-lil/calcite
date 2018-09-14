@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Partial implementation of {@link RelOptTable}.
@@ -111,6 +112,10 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
   public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+    throw new UnsupportedOperationException();
+  }
+
+  public RelOptTable config(Map<String, String> parameters) {
     throw new UnsupportedOperationException();
   }
 

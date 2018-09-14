@@ -30,6 +30,7 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a relational dataset in a {@link RelOptSchema}. It has methods to
@@ -119,6 +120,13 @@ public interface RelOptTable extends Wrapper {
    * table.
    */
   RelOptTable extend(List<RelDataTypeField> extendedFields);
+
+  /**
+   * Returns a table with the given dynamic fields.
+   * @param parameters parameters from sql
+   * @return new created table
+   */
+  RelOptTable config(Map<String, String> parameters);
 
   /** Returns a list describing how each column is populated. The list has the
    *  same number of entries as there are fields, and is immutable. */

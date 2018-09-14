@@ -220,6 +220,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** {@code EXTEND} operator. */
   public static final SqlInternalOperator EXTEND = new SqlExtendOperator();
 
+  /** Table with table hints. */
+  public static final SqlInternalOperator CONFIGURABLE = new SqlConfigurableOperator();
+
   /**
    * String concatenation operator, '<code>||</code>'.
    */

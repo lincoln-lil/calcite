@@ -5469,4 +5469,53 @@ LogicalProject(EXPR$0=[IS NULL(NOT(LIKE(null, 'xxx')))])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTableHintsInSelect">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2])
+  LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_CONFIGURABLE, WITH(P1=1)]])
+]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[select * from products_configurable with (p1 = '1')]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableHintsInInsert">
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, PRODUCTS_CONFIGURABLE, WITH(P1=1)]], operation=[INSERT], flattened=[true])
+  LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[insert into products_configurable with (p1 = '1') select * from products]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableHintsInUpdate">
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, PRODUCTS_CONFIGURABLE, WITH(P1=1)]], operation=[UPDATE], updateColumnList=[[NAME]], sourceExpressionList=[['test']], flattened=[true])
+  LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], EXPR$0=['test'])
+    LogicalFilter(condition=[=($0, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_CONFIGURABLE, WITH(P1=1)]])
+]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[update products_configurable with (p1 = '1') set name = 'test' where productid = 1]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableHintsInDelete">
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, PRODUCTS_CONFIGURABLE, WITH(P1=1)]], operation=[DELETE], flattened=[true])
+  LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2])
+    LogicalFilter(condition=[=($0, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_CONFIGURABLE, WITH(P1=1)]])
+]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[delete from products_configurable with (p1 = '1') where productid = 1]]>
+        </Resource>
+    </TestCase>
 </Root>

@@ -1089,8 +1089,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         switch (nested.getKind()) {
         case EXTEND:
           return getNamespace(nested, scope);
+        case CONFIGURABLE:
+          return getNamespace(nested, scope);
         }
         break;
+      case CONFIGURABLE:
+        final SqlNode table = call.getOperandList().get(0);
+        return getNamespace(table, scope);
       }
     }
     return getNamespace(node);
@@ -1125,6 +1130,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case ORDER_BY:
     case TABLESAMPLE:
       return getNamespace(((SqlCall) node).operand(0));
+    case CONFIGURABLE:
+      return ((TableNamespace) getNamespace(((SqlCall) node).operand(0)).resolve())
+              .config(((SqlCall) node).operand(1));
     default:
       return namespaces.get(node);
     }
@@ -1936,7 +1944,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // parse input query
     SqlNode expr = call.getTableRef();
     SqlNode newExpr = registerFrom(usingScope, matchRecognizeScope, true, expr,
-        expr, null, null, forceNullable, false);
+        expr, null, null, null, forceNullable, false);
     if (expr != newExpr) {
       call.setOperand(0, newExpr);
     }
@@ -1994,6 +2002,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    *                      such as alias and sample clause
    * @param alias         Alias
    * @param extendList    Definitions of extended columns
+   * @param tableHints    Hints for table in from clause.
    * @param forceNullable Whether to force the type of namespace to be
    *                      nullable because it is in an outer join
    * @param lateral       Whether LATERAL is specified, so that items to the
@@ -2009,6 +2018,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode enclosingNode,
       String alias,
       SqlNodeList extendList,
+      SqlNodeList tableHints,
       boolean forceNullable,
       final boolean lateral) {
     final SqlKind kind = node.getKind();
@@ -2091,6 +2101,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               enclosingNode,
               alias,
               extendList,
+              tableHints,
               forceNullable,
               lateral);
       if (newExpr != expr) {
@@ -2123,6 +2134,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               enclosingNode,
               alias,
               extendList,
+              tableHints,
               forceNullable,
               lateral);
       if (newExpr != expr) {
@@ -2161,6 +2173,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               left,
               null,
               null,
+              null,
               forceLeftNullable,
               lateral);
       if (newLeft != left) {
@@ -2173,6 +2186,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               true,
               right,
               right,
+              null,
               null,
               null,
               forceRightNullable,
@@ -2189,7 +2203,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlIdentifier id = (SqlIdentifier) node;
       final IdentifierNamespace newNs =
           new IdentifierNamespace(
-              this, id, extendList, enclosingNode,
+              this, id, extendList, tableHints, enclosingNode,
               parentScope);
       registerNamespace(register ? usingScope : null, alias, newNs,
           forceNullable);
@@ -2211,6 +2225,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           enclosingNode,
           alias,
           extendList,
+          tableHints,
           forceNullable,
           true);
 
@@ -2226,6 +2241,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               enclosingNode,
               alias,
               extendList,
+              tableHints,
               forceNullable, lateral);
       if (newOperand != operand) {
         call.setOperand(0, newOperand);
@@ -2236,7 +2252,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case UNNEST:
       if (!lateral) {
         return registerFrom(parentScope, usingScope, register, node,
-            enclosingNode, alias, extendList, forceNullable, true);
+            enclosingNode, alias, extendList, tableHints, forceNullable, true);
       }
       // fall through
     case SELECT:
@@ -2279,6 +2295,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               enclosingNode,
               alias,
               extendList,
+              tableHints,
               forceNullable,
               lateral);
       if (newOperand != operand) {
@@ -2301,6 +2318,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           extend,
           alias,
           (SqlNodeList) extend.getOperandList().get(1),
+          null,
+          forceNullable,
+          lateral);
+    case CONFIGURABLE:
+      final SqlCall configurable = (SqlCall) node;
+      return registerFrom(parentScope,
+          usingScope,
+          true,
+          configurable.getOperandList().get(0),
+          configurable,
+          alias,
+          null,
+          (SqlNodeList) configurable.getOperandList().get(1),
           forceNullable,
           lateral);
 
@@ -2315,6 +2345,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           enclosingNode,
           alias,
           extendList,
+          tableHints,
           forceNullable,
           lateral);
       if (newOperand != operand) {
@@ -2459,6 +2490,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 true,
                 from,
                 from,
+                null,
                 null,
                 null,
                 false,
@@ -3220,6 +3252,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     Objects.requireNonNull(targetRowType);
     switch (node.getKind()) {
     case AS:
+      validateFrom(
+          ((SqlCall) node).operand(0),
+          targetRowType,
+          scope);
+      break;
+    case CONFIGURABLE:
       validateFrom(
           ((SqlCall) node).operand(0),
           targetRowType,

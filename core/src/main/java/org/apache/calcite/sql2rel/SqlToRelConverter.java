@@ -120,6 +120,7 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlProperty;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
@@ -2006,6 +2007,13 @@ public class SqlToRelConverter {
       convertIdentifier(bb, id, extendedColumns);
       return;
 
+    case CONFIGURABLE:
+      call = (SqlCall) from;
+      SqlIdentifier tableId = (SqlIdentifier) call.getOperandList().get(0);
+      SqlNodeList param = (SqlNodeList) call.getOperandList().get(1);
+      convertIdentifierWitTableHints(bb, tableId, param);
+      return;
+
     case TEMPORAL:
       convertTemporal(bb, (SqlCall) from);
       return;
@@ -2304,6 +2312,42 @@ public class SqlToRelConverter {
             subsetMap, rowsPerMatchNode, partitionKeys, orders, intervalNode, emitNode);
     bb.setRoot(rel, false);
   }
+
+  private void convertIdentifierWitTableHints(Blackboard bb, SqlIdentifier id,
+      SqlNodeList param) {
+    final SqlValidatorNamespace fromNamespace =
+        validator.getNamespace(id).resolve();
+    if (fromNamespace.getNode() != null) {
+      convertFrom(bb, fromNamespace.getNode());
+      return;
+    }
+    final String datasetName =
+        datasetStack.isEmpty() ? null : datasetStack.peek();
+    final boolean[] usedDataset = {false};
+    RelOptTable table =
+        SqlValidatorUtil.getRelOptTable(fromNamespace, catalogReader,
+            datasetName, usedDataset);
+    if (param != null && param.size() > 0) {
+      assert table != null;
+      Map<String, String> paramMap = new HashMap<>();
+      for (SqlNode node : param.getList()) {
+        SqlProperty property = (SqlProperty) node;
+        paramMap.put(property.getKeyString(), property.getValueString());
+      }
+      table = table.config(paramMap);
+    }
+    final RelNode tableRel;
+    if (config.isConvertTableAccess()) {
+      tableRel = toRel(table);
+    } else {
+      tableRel = LogicalTableScan.create(cluster, table);
+    }
+    bb.setRoot(tableRel, true);
+    if (usedDataset[0]) {
+      bb.setDataset(datasetName);
+    }
+  }
+
 
   private void convertIdentifier(Blackboard bb, SqlIdentifier id,
       SqlNodeList extendedColumns) {

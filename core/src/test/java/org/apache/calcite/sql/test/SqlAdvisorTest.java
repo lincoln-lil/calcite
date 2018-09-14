@@ -84,6 +84,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "TABLE(CATALOG.SALES.SHIPMENTS)",
           "TABLE(CATALOG.SALES.PRODUCTS)",
           "TABLE(CATALOG.SALES.PRODUCTS_TEMPORAL)",
+          "TABLE(CATALOG.SALES.PRODUCTS_CONFIGURABLE)",
           "TABLE(CATALOG.SALES.SUPPLIERS)",
           "TABLE(CATALOG.SALES.EMP_R)",
           "TABLE(CATALOG.SALES.DEPT_R)");
@@ -334,6 +335,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(MINUS)",
           "KEYWORD(JOIN)",
           "KEYWORD(WINDOW)",
+          "KEYWORD(WITH)",
           "KEYWORD(.)",
           "KEYWORD(TABLESAMPLE)",
           "KEYWORD(ON)",

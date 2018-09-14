@@ -808,6 +808,10 @@ public enum SqlKind {
    * {@code FROM} clause. */
   EXTEND,
 
+  /** The internal {@code CONFIGURABLE} operator that qualifies a table name in the
+   * {@code FROM} clause. */
+  CONFIGURABLE,
+
   /** The internal {@code CUBE} operator that occurs within a {@code GROUP BY}
    * clause. */
   CUBE,
@@ -1166,7 +1170,7 @@ public enum SqlKind {
           concat(
               EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
                   RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
-                  DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
+                  DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, CONFIGURABLE, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,

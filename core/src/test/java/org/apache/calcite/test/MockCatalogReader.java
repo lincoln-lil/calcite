@@ -55,6 +55,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.ColumnStrategy;
+import org.apache.calcite.schema.ConfigurableTable;
 import org.apache.calcite.schema.CustomColumnResolvingTable;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Path;
@@ -359,6 +360,16 @@ public class MockCatalogReader extends CalciteCatalogReader {
     productsTemporalTable.addColumn("SYS_START", f.timestampType);
     productsTemporalTable.addColumn("SYS_END", f.timestampType);
     registerTable(productsTemporalTable);
+
+    // Register "PRODUCTS" table.
+    MockTable productsConfigurableTable = MockTable.create(
+            this, salesSchema, "PRODUCTS_CONFIGURABLE", false, 200D);
+    productsConfigurableTable.setConfigurable(true);
+    productsConfigurableTable.addColumn("PRODUCTID", f.intType);
+    productsConfigurableTable.addColumn("NAME", f.varchar20Type);
+    productsConfigurableTable.addColumn("SUPPLIERID", f.intType);
+    registerTable(productsConfigurableTable);
+
 
     // Register "SUPPLIERS" table.
     MockTable suppliersTable = MockTable.create(this, salesSchema, "SUPPLIERS",
@@ -756,6 +767,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     private boolean temporal;
     protected final InitializerExpressionFactory initializerFactory;
     protected final Set<String> rolledUpColumns = new HashSet<>();
+    protected boolean configurable = false;
 
     public MockTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount,
@@ -865,6 +877,37 @@ public class MockCatalogReader extends CalciteCatalogReader {
       };
     }
 
+    @Override protected RelOptTable config(List<String> qualifiedNames, Table configuredTable) {
+      return new MockTable(
+          catalogReader, qualifiedNames, stream, rowCount, resolver, initializerFactory) {
+        @Override public RelDataType getRowType() {
+          return configuredTable.getRowType(catalogReader.typeFactory);
+        }
+      };
+    }
+
+    /**
+     * Modifiable table which implements ConfigurableTable.
+     */
+    private class ModifiableTableWithConfigurable extends ModifiableTable
+            implements ConfigurableTable {
+
+      private Map<String, String> parameters = new HashMap<>();
+
+      protected ModifiableTableWithConfigurable(String tableName) {
+        super(tableName);
+      }
+      protected ModifiableTableWithConfigurable(String tableName, Map<String, String> param) {
+        super(tableName);
+        parameters.putAll(param);
+      }
+
+      @Override public Table config(Map<String, String> parameters) {
+        return new ModifiableTableWithConfigurable(
+            Util.last(names)  + " " + parameters.toString(), parameters);
+      }
+    }
+
     public static MockTable create(MockCatalogReader catalogReader,
         MockSchema schema, String name, boolean stream, double rowCount) {
       return create(catalogReader, schema, name, stream, rowCount, null);
@@ -903,7 +946,8 @@ public class MockCatalogReader extends CalciteCatalogReader {
       }
       if (clazz.isAssignableFrom(Table.class)) {
         final Table table = resolver == null
-            ? new ModifiableTable(Util.last(names))
+            ? (configurable ? new ModifiableTableWithConfigurable(Util.last(names))
+                              : new ModifiableTable(Util.last(names)))
                 : new ModifiableTableWithCustomColumnResolving(Util.last(names));
         return clazz.cast(table);
       }
@@ -993,6 +1037,10 @@ public class MockCatalogReader extends CalciteCatalogReader {
 
     public void setTemporal(boolean temporal) {
       this.temporal = temporal;
+    }
+
+    public void setConfigurable(boolean configurable) {
+      this.configurable = configurable;
     }
 
     public void setKind(StructKind kind) {

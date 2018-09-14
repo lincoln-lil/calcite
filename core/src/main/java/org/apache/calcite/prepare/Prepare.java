@@ -44,6 +44,7 @@ import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.schema.ColumnStrategy;
+import org.apache.calcite.schema.ConfigurableTable;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
@@ -69,6 +70,8 @@ import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.trace.CalciteTimingTracer;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
@@ -76,7 +79,9 @@ import org.slf4j.Logger;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -476,9 +481,38 @@ public abstract class Prepare {
       throw new RuntimeException("Cannot extend " + table);
     }
 
+    @Override public final RelOptTable config(Map<String, String> parameters) {
+      final Table table = unwrap(Table.class);
+
+      if (table instanceof ConfigurableTable) {
+        // modify last quolified name with config.
+        Table newTable = ((ConfigurableTable) table).config(parameters);
+        List<String> qualifiedNames = getQualifiedName();
+        StringBuilder builder = new StringBuilder();
+        builder.append("WITH(");
+        List<String> params = new ArrayList<>(parameters.size());
+        for (Map.Entry<String, String> entry: parameters.entrySet()) {
+          params.add(entry.getKey() + "=" + entry.getValue());
+        }
+        builder.append(StringUtils.join(params, ","));
+        builder.append(")");
+        String newName = builder.toString();
+        List<String> newQualifiedNames = new LinkedList<>();
+        newQualifiedNames.addAll(qualifiedNames);
+        newQualifiedNames.add(newName);
+        return config(newQualifiedNames, newTable);
+      }
+      throw new RuntimeException("Cannot config " + table);
+    }
+
     /** Implementation-specific code to instantiate a new {@link RelOptTable}
      * based on a {@link Table} that has been extended. */
     protected abstract RelOptTable extend(Table extendedTable);
+
+    /**
+     * Inplementation-specific code to instantiate a new {@link RelOptTable}
+     * based on a {@link Table} that has been configured. */
+    protected abstract RelOptTable config(List<String> qualifiedNames, Table configuredTable);
 
     public List<ColumnStrategy> getColumnStrategies() {
       return RelOptTableImpl.columnStrategies(AbstractPreparingTable.this);

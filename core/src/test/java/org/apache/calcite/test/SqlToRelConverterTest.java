@@ -81,6 +81,26 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test
+  public void testTableHintsInSelect() {
+    sql("select * from products_configurable with (p1 = '1')").ok();
+  }
+
+  @Test
+  public void testTableHintsInInsert() {
+    sql("insert into products_configurable with (p1 = '1') select * from products").ok();
+  }
+
+  @Test
+  public void testTableHintsInUpdate() {
+    sql("update products_configurable with (p1 = '1') set name = 'test' where productid = 1").ok();
+  }
+
+  @Test
+  public void testTableHintsInDelete() {
+    sql("delete from products_configurable with (p1 = '1') where productid = 1").ok();
+  }
+
   @Test public void testIntervalLiteralYearToMonth() {
     final String sql = "select\n"
         + "  cast(empno as Integer) * (INTERVAL '1-1' YEAR TO MONTH)\n"

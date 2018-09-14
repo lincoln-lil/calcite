@@ -8225,6 +8225,65 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testTableHintsInSelect() {
+    sql("select * from t with (p1='a')")
+            .ok("SELECT *\nFROM `T` WITH (`P1` = 'a')");
+    sql("select * from (select * from t with (p1='a') union all select * from t with (p1='b'))")
+            .ok("SELECT *\n"
+                + "FROM (SELECT *\n"
+                + "FROM `T` WITH (`P1` = 'a')\n"
+                + "UNION ALL\n"
+                + "SELECT *\n"
+                + "FROM `T` WITH (`P1` = 'b'))");
+    sql("select * from t with (p1='b') join t with (p1='a')").ok("SELECT *\n"
+            + "FROM `T` WITH (`P1` = 'b')\n"
+            + "INNER JOIN `T` WITH (`P1` = 'a')");
+  }
+
+  @Test public void testTableHintsInInsert() {
+    final String expected = "INSERT INTO `EMPS` WITH (`P1` = 'a')\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into emps with (p1='a') select * from emps")
+        .ok(expected)
+        .node(not(isDdl()));
+
+  }
+
+  @Test public void testTableHintsInDelete() {
+    check(
+        "delete from emps with (p1='a') where empno=12",
+        "DELETE FROM `EMPS` WITH (`P1` = 'a')\n"
+            + "WHERE (`EMPNO` = 12)");
+  }
+
+  @Test public void testTableHintsInUpdate() {
+    sql("update emps with (p1='a') set empno = empno + 1, sal = sal - 1 where empno=12")
+        .ok("UPDATE `EMPS` WITH (`P1` = 'a') SET `EMPNO` = (`EMPNO` + 1)\n"
+                + ", `SAL` = (`SAL` - 1)\n"
+                + "WHERE (`EMPNO` = 12)");
+  }
+
+  @Test public void testTableHintsInMerge() {
+    check(
+            "merge into emps with (p1='a') e "
+                    + "using tempemps as t "
+                    + "on e.empno = t.empno "
+                    + "when matched then update "
+                    + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
+                    + "when not matched then insert (name, dept, salary) "
+                    + "values(t.name, 10, t.salary * .15)",
+
+            "MERGE INTO `EMPS` WITH (`P1` = 'a') AS `E`\n"
+                    + "USING `TEMPEMPS` AS `T`\n"
+                    + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+                    + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
+                    + ", `DEPTNO` = `T`.`DEPTNO`\n"
+                    + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
+                    + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+                    + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**

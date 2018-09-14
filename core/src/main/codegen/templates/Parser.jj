@@ -76,6 +76,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
+import org.apache.calcite.sql.SqlProperty;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
@@ -221,6 +222,11 @@ public class ${parser.class} extends SqlAbstractParserImpl
     private SqlNode extend(SqlNode table, SqlNodeList extendList) {
         return SqlStdOperatorTable.EXTEND.createCall(
             Span.of(table, extendList).pos(), table, extendList);
+    }
+
+    private SqlNode toTableWithHints(SqlNode table, SqlNodeList hints) {
+        return SqlStdOperatorTable.CONFIGURABLE.createCall(
+            Span.of(table, hints).pos(), table, hints);
     }
 }
 
@@ -1309,7 +1315,7 @@ SqlNode SqlInsert() :
     SqlInsertKeywords(keywords) {
         keywordList = new SqlNodeList(keywords, s.addAll(keywords).pos());
     }
-    <INTO> table = CompoundIdentifier()
+    <INTO> table = TableIdentifierWithHints()
     [
         LOOKAHEAD(5)
         [ <EXTEND> ]
@@ -1421,7 +1427,7 @@ SqlNode SqlDelete() :
     <DELETE> {
         s = span();
     }
-    <FROM> table = CompoundIdentifier()
+    <FROM> table = TableIdentifierWithHints()
     [
         [ <EXTEND> ]
         extendList = ExtendList() {
@@ -1453,7 +1459,7 @@ SqlNode SqlUpdate() :
 }
 {
     <UPDATE> { s = span(); }
-    table = CompoundIdentifier() {
+    table = TableIdentifierWithHints() {
         targetColumnList = new SqlNodeList(s.pos());
         sourceExpressionList = new SqlNodeList(s.pos());
     }
@@ -1505,7 +1511,7 @@ SqlNode SqlMerge() :
     final Span s;
 }
 {
-    <MERGE> { s = span(); } <INTO> table = CompoundIdentifier()
+    <MERGE> { s = span(); } <INTO> table = TableIdentifierWithHints()
     [
         [ <EXTEND> ]
         extendList = ExtendList() {
@@ -1855,6 +1861,59 @@ SqlNode FromClause() :
     }
 }
 
+SqlNode PropertyValue() :
+{
+    SqlIdentifier key;
+    SqlNode value;
+    SqlParserPos pos;
+}
+{
+    key = CompoundIdentifier()
+    { pos = getPos(); }
+    <EQ> value = StringLiteral()
+    {
+        return new SqlProperty(key, value, getPos());
+    }
+}
+
+SqlNode TableIdentifierWithHints() :
+{
+    SqlNode tableRef;
+    SqlNode property;
+    SqlNodeList propertyList;
+    SqlParserPos pos;
+}
+{
+    tableRef = CompoundIdentifier()
+    [
+        <WITH>
+            {
+                List<SqlNode> proList = new ArrayList<SqlNode>();
+                pos = getPos();
+            }
+            <LPAREN>
+                property = PropertyValue()
+                {
+                    proList.add(property);
+                }
+                (
+                    <COMMA>
+                    property = PropertyValue()
+                    {
+                       proList.add(property);
+                    }
+                )*
+            <RPAREN>
+        {
+            propertyList = new SqlNodeList(proList, pos.plus(getPos()));
+            tableRef = toTableWithHints(tableRef, propertyList);
+        }
+    ]
+    {
+        return tableRef;
+    }
+}
+
 /**
  * Parses a table reference in a FROM clause, not lateral unless LATERAL
  * is explicitly specified.
@@ -1890,7 +1949,7 @@ SqlNode TableRef2(boolean lateral) :
 {
     (
         LOOKAHEAD(2)
-        tableRef = CompoundIdentifier()
+        tableRef = TableIdentifierWithHints()
         [
             [ <EXTEND> ]
             extendList = ExtendList() {
@@ -3595,6 +3654,8 @@ SqlNode AtomicRowExpression() :
         e = ContextVariable()
     |
         e = CompoundIdentifier()
+    |
+        e = TableIdentifierWithHints()
     |
         e = NewSpecification()
     |

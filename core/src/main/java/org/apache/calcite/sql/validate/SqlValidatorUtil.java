@@ -96,7 +96,7 @@ public class SqlValidatorUtil {
       final TableNamespace tableNamespace =
           namespace.unwrap(TableNamespace.class);
       return getRelOptTable(tableNamespace, catalogReader, datasetName, usedDataset,
-          tableNamespace.extendedFields);
+          tableNamespace.extendedFields, tableNamespace.tableHints);
     } else if (namespace.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
       final SqlValidatorImpl.DmlNamespace dmlNamespace = namespace.unwrap(
           SqlValidatorImpl.DmlNamespace.class);
@@ -109,7 +109,8 @@ public class SqlValidatorUtil {
             ? ImmutableList.of()
             : getExtendedColumns(typeFactory, validatorTable, dmlNamespace.extendList);
         return getRelOptTable(
-            tableNamespace, catalogReader, datasetName, usedDataset, extendedFields);
+            tableNamespace, catalogReader, datasetName, usedDataset,
+            extendedFields, tableNamespace.tableHints);
       }
     }
     return null;
@@ -120,8 +121,12 @@ public class SqlValidatorUtil {
       Prepare.CatalogReader catalogReader,
       String datasetName,
       boolean[] usedDataset,
-      List<RelDataTypeField> extendedFields) {
-    final List<String> names = tableNamespace.getTable().getQualifiedName();
+      List<RelDataTypeField> extendedFields,
+      Map<String, String> tableParameters) {
+    List<String> names = tableNamespace.getTable().getQualifiedName();
+    if (tableParameters.size() > 0) {
+      names = Util.skipLast(names);
+    }
     RelOptTable table;
     if (datasetName != null
         && catalogReader instanceof RelOptSchemaWithSampling) {
@@ -134,6 +139,9 @@ public class SqlValidatorUtil {
     }
     if (!extendedFields.isEmpty()) {
       table = table.extend(extendedFields);
+    }
+    if (!tableParameters.isEmpty()) {
+      table = table.config(tableParameters);
     }
     return table;
   }

@@ -205,6 +205,13 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         extendedTable, expressionFunction, getRowCount());
   }
 
+  @Override protected RelOptTable config(List<String> qualifiedNames, Table configuredTable) {
+    final RelDataType newRowType =
+            configuredTable.getRowType(getRelOptSchema().getTypeFactory());
+    return new RelOptTableImpl(getRelOptSchema(), newRowType, qualifiedNames,
+            configuredTable, expressionFunction, null);
+  }
+
   @Override public boolean equals(Object obj) {
     return obj instanceof RelOptTableImpl
         && this.rowType.equals(((RelOptTableImpl) obj).getRowType())
