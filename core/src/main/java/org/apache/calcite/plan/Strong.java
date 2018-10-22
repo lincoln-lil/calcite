@@ -180,6 +180,8 @@ public class Strong {
 
     // The following types of expressions could potentially be custom.
     map.put(SqlKind.CASE, Policy.AS_IS);
+    // CAST('abc' as int) yields NULL, but CAST('1' as int) yields 1
+    map.put(SqlKind.CAST, Policy.AS_IS);
     map.put(SqlKind.DECODE, Policy.AS_IS);
     // NULLIF(1, NULL) yields 1, but NULLIF(1, 1) yields NULL
     map.put(SqlKind.NULLIF, Policy.AS_IS);
@@ -225,7 +227,6 @@ public class Strong {
     map.put(SqlKind.MINUS_PREFIX, Policy.ANY);
     map.put(SqlKind.TIMES, Policy.ANY);
     map.put(SqlKind.DIVIDE, Policy.ANY);
-    map.put(SqlKind.CAST, Policy.ANY);
     map.put(SqlKind.REINTERPRET, Policy.ANY);
     map.put(SqlKind.TRIM, Policy.ANY);
     map.put(SqlKind.LTRIM, Policy.ANY);
