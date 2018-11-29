@@ -9082,4 +9082,23 @@ LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{0}])
         </Resource>
     </TestCase>
 
+    <TestCase name="testProjectRemove">
+        <Resource name="sql">
+            <![CDATA[select name as n from (select name from dept) t]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(N=[$0])
+  LogicalProject(NAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(N=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+
 </Root>

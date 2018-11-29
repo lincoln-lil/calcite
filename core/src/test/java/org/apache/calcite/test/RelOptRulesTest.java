@@ -4237,6 +4237,11 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
+  @Test public void testProjectRemove() {
+    final String sql = "select name as n from (select name from dept) t";
+    sql(sql).withRule(ProjectRemoveRule.INSTANCE).check();
+  }
+
 }
 
 // End RelOptRulesTest.java

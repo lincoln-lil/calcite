@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
@@ -63,9 +64,10 @@ public class ProjectRemoveRule extends RelOptRule {
     Project project = call.rel(0);
     assert isTrivial(project);
     RelNode stripped = project.getInput();
-    if (stripped instanceof Project) {
+    if (stripped instanceof HepRelVertex
+        && ((HepRelVertex) stripped).getCurrentRel() instanceof Project) {
       // Rename columns of child projection if desired field names are given.
-      Project childProject = (Project) stripped;
+      Project childProject = (Project) ((HepRelVertex) stripped).getCurrentRel();
       stripped = childProject.copy(childProject.getTraitSet(),
           childProject.getInput(), childProject.getProjects(),
           project.getRowType());
