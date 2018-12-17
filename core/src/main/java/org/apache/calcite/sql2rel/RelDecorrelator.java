@@ -472,6 +472,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
     final RelNode newInput = frame.r;
 
+    // aggregate outputs mappings: group keys + aggregates
+    Map<Integer, Integer> outputsMapping = new HashMap<>();
+
     // map from newInput
     Map<Integer, Integer> mapNewInputToProjOutputs = new HashMap<>();
     final int oldGroupKeyCount = rel.getGroupSet().cardinality();
@@ -495,6 +498,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
         omittedConstants.put(i, constant);
         continue;
       }
+
+      // add the mappings of group by keys.
+      outputsMapping.put(i, newPos);
       int newInputPos = frame.oldToNewOutputs.get(i);
       projects.add(RexInputRef.of2(newInputPos, newInputOutput));
       mapNewInputToProjOutputs.put(newInputPos, newPos);
@@ -588,7 +594,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // The old to new output position mapping will be the same as that
       // of newProject, plus any aggregates that the oldAgg produces.
-      combinedMap.put(
+      outputsMapping.put(
           oldInputOutputFieldCount + i,
           newInputOutputFieldCount + i);
     }
@@ -603,12 +609,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
         postProjects.add(entry.getKey() + frame.corDefOutputs.size(),
             entry.getValue());
       }
+      for (Map.Entry<Integer, RexLiteral> entry
+          : omittedConstants.entrySet()) {
+        outputsMapping.put(entry.getKey(), postProjects.indexOf(entry.getValue()));
+      }
       relBuilder.project(postProjects);
     }
 
     // Aggregate does not change input ordering so corVars will be
     // located at the same position as the input newProject.
-    return register(rel, relBuilder.build(), combinedMap, corDefOutputs);
+    return register(rel, relBuilder.build(), outputsMapping, corDefOutputs);
   }
 
   public Frame getInvoke(RelNode r, RelNode parent) {

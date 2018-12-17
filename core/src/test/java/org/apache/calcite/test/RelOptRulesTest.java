@@ -112,12 +112,18 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SemiJoinType;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.UdfSqlOperatorTable;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -4023,6 +4029,39 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2744">[CALCITE-2744]
+   * Throws RuntimeException in RelDecorrelator when optimizing a Semi-Join
+   * query with a multi-param aggregate function in subquery</a> */
+  @Test public void testDecorrelateWithMultiParamsAgg() {
+    UdfSqlOperatorTable.instance().register(UDF_AVG);
+    final String sql = "select * from dept where exists (\n"
+        + "select UDF_AVG(sal, sal + 1) from sales.emp\n"
+        + "where emp.deptno = dept.deptno\n"
+        + "and emp.sal > 100)";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2744">[CALCITE-2744]
+   * Throws RuntimeException in RelDecorrelator when optimizing a Semi-Join
+   * query with a multi-param aggregate function in subquery</a> */
+  @Test public void testDecorrelateWithConstantGroupKey() {
+    final String sql = "select * from emp as e left join lateral (\n"
+        + "select distinct true as i\n"
+        + "from dept\n"
+        + "where e.deptno=dept.deptno) on true";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1494">[CALCITE-1494]
    * Inefficient plan for correlated sub-queries</a>. In "planAfter", there
    * must be only one scan each of emp and dept. We don't need a separate
@@ -4309,6 +4348,20 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(ProjectRemoveRule.INSTANCE).check();
   }
 
+  private static final SqlFunction UDF_AVG = new SqlAggFunction(
+      "UDF_AVG",
+      null,
+      SqlKind.AVG,
+      ReturnTypes.AVG_AGG_FUNCTION,
+      null,
+      OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+      SqlFunctionCategory.NUMERIC,
+      false,
+      false) {
+    @Override public boolean isDeterministic() {
+      return false;
+    }
+  };
 }
 
 // End RelOptRulesTest.java

@@ -9145,4 +9145,101 @@ LogicalProject(N=[$1])
         </Resource>
     </TestCase>
 
+    <TestCase name="testDecorrelateWithMultiParamsAgg">
+        <Resource name="sql">
+            <![CDATA[select * from dept where exists (
+select UDF_AVG(sal, sal + 1) from sales.emp
+where emp.deptno = dept.deptno
+and emp.sal > 100]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[IS NOT NULL($2)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalAggregate(group=[{}], EXPR$0=[UDF_AVG($0, $1)])
+            LogicalProject(SAL=[$5], $f1=[+($5, 1)])
+              LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), >($5, 100))])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planMid">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[IS NOT NULL($2)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalAggregate(group=[{}], EXPR$0=[UDF_AVG($0, $1)])
+            LogicalProject(SAL=[$5], $f1=[+($5, 1)])
+              LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), >($5, 100))])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], $f0=[$3])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[CAST($2):INTEGER], $f1=[CAST($3):BOOLEAN])
+      LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+          LogicalProject(DEPTNO=[$1], $f0=[$0])
+            LogicalProject($f0=[true], DEPTNO=[$0])
+              LogicalAggregate(group=[{0}], EXPR$0=[UDF_AVG($1, $2)])
+                LogicalProject(DEPTNO=[$2], SAL=[$0], $f1=[$1])
+                  LogicalProject(SAL=[$5], $f1=[+($5, 1)], DEPTNO=[$7])
+                    LogicalFilter(condition=[>($5, 100)])
+                      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+
+    <TestCase name="testDecorrelateWithConstantGroupKey">
+        <Resource name="sql">
+            <![CDATA[select * from emp as e left join lateral (
+select distinct true as i
+from dept
+where e.deptno=dept.deptno) on true]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], I=[$9])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(I=[true])
+        LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planMid">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], I=[$9])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(I=[true])
+        LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], I=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], $f1=[true])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$1], I=[$0])
+          LogicalProject(I=[true], DEPTNO=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+
 </Root>
