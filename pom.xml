@@ -24,10 +24,10 @@ limitations under the License.
   </parent>
 
   <!-- The basics. -->
-  <groupId>com.alibaba.blink.calcite</groupId>
+  <groupId>com.alibaba.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>1.17.2-SNAPSHOT</version>
+  <version>1.17.0-flink-r1</version>
 
   <!-- More project information. -->
   <name>Calcite</name>
@@ -1000,19 +1000,165 @@ limitations under the License.
     </repository>
   </repositories>
   <distributionManagement>
-    <repository>
-      <id>releases</id>
-      <name>releases</name>
-      <url>http://mvnrepo.alibaba-inc.com/nexus/content/repositories/releases/</url>
-    </repository>
+    <!--<repository>-->
+      <!--<id>releases</id>-->
+      <!--<name>releases</name>-->
+      <!--<url>http://mvnrepo.alibaba-inc.com/nexus/content/repositories/releases/</url>-->
+    <!--</repository>-->
+    <!--<snapshotRepository>-->
+      <!--<id>snapshots</id>-->
+      <!--<name>snapshots</name>-->
+      <!--<url>http://mvnrepo.alibaba-inc.com/nexus/content/repositories/snapshots/</url>-->
+    <!--</snapshotRepository>-->
     <snapshotRepository>
-      <id>snapshots</id>
-      <name>snapshots</name>
-      <url>http://mvnrepo.alibaba-inc.com/nexus/content/repositories/snapshots/</url>
+      <id>oss</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
     </snapshotRepository>
+    <repository>
+      <id>oss</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
   </distributionManagement>
 
   <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.5</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>enforce-java</id>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireJavaVersion>
+                      <version>[1.8,)</version>
+                    </requireJavaVersion>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>${maven-javadoc-plugin.version}</version>
+            <configuration>
+              <doclint>none</doclint>
+              <links>
+                <link>${maven-javadoc-plugin.link}</link>
+              </links>
+              <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
+              <notimestamp>true</notimestamp>
+              <windowtitle>Apache Calcite API</windowtitle>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.ju-n.maven.plugins</groupId>
+            <artifactId>checksum-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>artifacts</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <algorithms>
+                <algorithm>SHA-256</algorithm>
+              </algorithms>
+              <failOnError>false</failOnError>
+            </configuration>
+          </plugin>
+          <!-- Override the parent assembly execution to customize the assembly
+               descriptor and final name. -->
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>source-release-assembly</id>
+                <phase>none</phase>
+              </execution>
+              <execution>
+                <id>source-release-assembly-calcite</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <configuration>
+                  <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
+                  <appendAssemblyId>false</appendAssemblyId>
+                  <descriptors>
+                    <descriptor>src/main/config/assemblies/source-assembly.xml</descriptor>
+                  </descriptors>
+                  <finalName>apache-calcite-${project.version}-src</finalName>
+                  <tarLongFileMode>gnu</tarLongFileMode>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-remote-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>root-resources</id>
+                <goals>
+                  <goal>process</goal>
+                </goals>
+                <configuration>
+                  <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
+                  <resourceBundles>
+                    <resourceBundle>org.apache:apache-jar-resource-bundle:1.4</resourceBundle>
+                  </resourceBundles>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-release-plugin</artifactId>
+              <version>2.1</version>
+              <configuration>
+                <mavenExecutorId>forked-path</mavenExecutorId>
+                <useReleaseProfile>false</useReleaseProfile>
+                <arguments>${arguments} -Psonatype-oss-release</arguments>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+
     <profile>
       <!-- This profile adds/overrides few features of the 'apache-release'
            profile in the parent pom. -->
