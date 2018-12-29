@@ -71,8 +71,8 @@ import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlTemporal;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
@@ -983,9 +983,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         ns.getTable(),
         SqlAccessEnum.SELECT);
 
-    if (node.getKind() == SqlKind.TEMPORAL) {
-      SqlTemporal temporal = (SqlTemporal) node;
-      SqlNode period = temporal.getPeriod();
+    if (node.getKind() == SqlKind.SNAPSHOT) {
+      SqlSnapshot snapshot = (SqlSnapshot) node;
+      SqlNode period = snapshot.getPeriod();
       RelDataType dataType = deriveType(scope, period);
       if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
         throw newValidationError(period,
@@ -994,7 +994,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (!ns.getTable().isTemporalTable()) {
         List<String> qualifiedName = ns.getTable().getQualifiedName();
         String tableName = qualifiedName.get(qualifiedName.size() - 1);
-        throw newValidationError(temporal.getTableRef(),
+        throw newValidationError(snapshot.getTableRef(),
             Static.RESOURCE.notTemporalTable(tableName));
       }
     }
@@ -1124,7 +1124,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return ns;
       }
       // fall through
-    case TEMPORAL:
+    case SNAPSHOT:
     case OVER:
     case COLLECTION_TABLE:
     case ORDER_BY:
@@ -2334,13 +2334,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           forceNullable,
           lateral);
 
-    case TEMPORAL:
+    case SNAPSHOT:
       call = (SqlCall) node;
       operand = call.operand(0);
       newOperand = registerFrom(
           tableScope == null ? parentScope : tableScope,
           usingScope,
-          true,
+          register,
           operand,
           enclosingNode,
           alias,
@@ -3272,9 +3272,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case OVER:
       validateOver((SqlCall) node, scope);
       break;
-//    case TEMPORAL:
-//      validateTemporal((SqlCall) node, scope);
-//      break;
     default:
       validateQuery(node, scope, targetRowType);
       break;

@@ -1060,15 +1060,21 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select * from dept, lateral table(ramp(deptno))").ok();
   }
 
-  @Test public void testTemporal() {
+  @Test public void testSnapshotOnTemporalTable() {
+    final String sql = "select * from products_temporal "
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).ok();
+  }
+
+  @Test public void testJoinTemporalTableOnSpecificTime() {
     final String sql = "select stream * from "
         + "orders, products_temporal for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
     sql(sql).ok();
   }
 
-  @Test public void testTemporalWithLateral() {
-    final String sql = "select stream * from "
-        + "orders join lateral products_temporal for system_time as of orders.rowtime "
+  @Test public void testJoinTemporalTableOnColumnReference() {
+    final String sql = "select stream * from \n"
+        + "orders join products_temporal for system_time as of orders.rowtime \n"
         + "on orders.productid = products_temporal.productid";
     sql(sql).ok();
   }

@@ -3191,10 +3191,8 @@ public class SqlParserTest {
 
   @Test public void testLateral() {
     // Bad: LATERAL table
-    sql("select * from lateral em^p^")
-        .fails("(?s)Encountered \"<EOF>\" at .*");
-    sql("select * from lateral table ^emp^ as e")
-        .fails("(?s)Encountered \"emp\" at .*");
+    sql("select * from ^lateral^ emp")
+        .fails("(?s)Encountered \"lateral emp\" at .*");
 
     // Bad: LATERAL TABLE schema.table
     sql("select * from lateral table ^scott^.emp")
@@ -8179,7 +8177,7 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test public void testTemporal1() {
+  @Test public void testSnapshotTable() {
     final String sql = "select *\n"
         + "  from t for system_time as of\n"
         + "  TIMESTAMP '2011-01-02 00:00:00'";
@@ -8189,11 +8187,11 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test public void testLateralTemporal() {
-    final String sql = "select * from dept, lateral t for system_time as of dept.rowtime";
+  @Test public void testTemporalJoin() {
+    final String sql = "select * from dept, t for system_time as of dept.rowtime";
     final String expected = "SELECT *\n"
         + "FROM `DEPT`,\n"
-        + "LATERAL `T` FOR SYSTEM_TIME AS OF `DEPT`.`ROWTIME`";
+        + "`T` FOR SYSTEM_TIME AS OF `DEPT`.`ROWTIME`";
     sql(sql).ok(expected);
   }
 

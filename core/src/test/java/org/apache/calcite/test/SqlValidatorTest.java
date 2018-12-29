@@ -7988,8 +7988,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "for system_time as of ^'2011-01-02 00:00:00'^",
         "The system time period specification expects Timestamp type but is 'CHAR'");
 
-    check("select stream * from orders, lateral products_temporal "
-        + "for system_time as of orders.rowtime");
+    // verify inner join with a specific timestamp
+    check("select stream * from orders join products_temporal "
+        + "for system_time as of timestamp '2011-01-02 00:00:00' "
+        + "on orders.productid = products_temporal.productid");
+
+    // verify left join with a timestamp expression
+    check("select stream * from orders left join products_temporal "
+        + "for system_time as of orders.rowtime "
+        + "on orders.productid = products_temporal.productid");
   }
 
   @Test public void testScalarSubQuery() {

@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * SqlNode for FOR SYSTEM_TIME temporal clause
  */
-public class SqlTemporal extends SqlCall {
+public class SqlSnapshot extends SqlCall {
   private static final int OPERAND_TABLE_REF = 0;
   private static final int OPERAND_PERIOD = 1;
 
@@ -35,8 +35,8 @@ public class SqlTemporal extends SqlCall {
   private SqlNode tableRef;
   private SqlNode period;
 
-  /** Creates a SqlTemporal. */
-  public SqlTemporal(SqlParserPos pos, SqlNode tableRef, SqlNode period) {
+  /** Creates a SqlSnapshot. */
+  public SqlSnapshot(SqlParserPos pos, SqlNode tableRef, SqlNode period) {
     super(pos);
     this.tableRef = tableRef;
     this.period = period;
@@ -48,7 +48,7 @@ public class SqlTemporal extends SqlCall {
   // ~ Methods
 
   @Override public SqlOperator getOperator() {
-    return SqlTemporalOperator.INSTANCE;
+    return SqlSnapshotOperator.INSTANCE;
   }
 
   @Override public List<SqlNode> getOperandList() {
@@ -83,12 +83,12 @@ public class SqlTemporal extends SqlCall {
   /**
    * An operator describing a FOR SYSTEM_TIME specification.
    */
-  public static class SqlTemporalOperator extends SqlOperator {
+  public static class SqlSnapshotOperator extends SqlOperator {
 
-    public static final SqlTemporalOperator INSTANCE = new SqlTemporalOperator();
+    public static final SqlSnapshotOperator INSTANCE = new SqlSnapshotOperator();
 
-    private SqlTemporalOperator() {
-      super("TEMPORAL", SqlKind.TEMPORAL, 2, true, null, null, null);
+    private SqlSnapshotOperator() {
+      super("SNAPSHOT", SqlKind.SNAPSHOT, 2, true, null, null, null);
     }
 
     @Override public SqlSyntax getSyntax() {
@@ -101,7 +101,7 @@ public class SqlTemporal extends SqlCall {
         SqlNode... operands) {
       assert functionQualifier == null;
       assert operands.length == 2;
-      return new SqlTemporal(pos, operands[0], operands[1]);
+      return new SqlSnapshot(pos, operands[0], operands[1]);
     }
 
     @Override public <R> void acceptCall(
@@ -126,7 +126,7 @@ public class SqlTemporal extends SqlCall {
         int leftPrec,
         int rightPrec) {
 
-      final SqlTemporal temporal = (SqlTemporal) call;
+      final SqlSnapshot temporal = (SqlSnapshot) call;
 
       temporal.tableRef.unparse(writer, 0, 0);
       writer.keyword("FOR SYSTEM_TIME AS OF");
@@ -135,4 +135,4 @@ public class SqlTemporal extends SqlCall {
   }
 }
 
-// End SqlTemporal.java
+// End SqlSnapshot.java

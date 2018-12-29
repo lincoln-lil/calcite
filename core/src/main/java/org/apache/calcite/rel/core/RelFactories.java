@@ -30,6 +30,7 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -87,6 +88,9 @@ public class RelFactories {
   public static final TableScanFactory DEFAULT_TABLE_SCAN_FACTORY =
       new TableScanFactoryImpl();
 
+  public static final SnapshotFactory DEFAULT_SNAPSHOT_FACTORY =
+      new SnapshotFactoryImpl();
+
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
   public static final RelBuilderFactory LOGICAL_BUILDER =
@@ -100,7 +104,8 @@ public class RelFactories {
               DEFAULT_MATCH_FACTORY,
               DEFAULT_SET_OP_FACTORY,
               DEFAULT_VALUES_FACTORY,
-              DEFAULT_TABLE_SCAN_FACTORY));
+              DEFAULT_TABLE_SCAN_FACTORY,
+              DEFAULT_SNAPSHOT_FACTORY));
 
   private RelFactories() {
   }
@@ -403,6 +408,27 @@ public class RelFactories {
   private static class TableScanFactoryImpl implements TableScanFactory {
     public RelNode createScan(RelOptCluster cluster, RelOptTable table) {
       return LogicalTableScan.create(cluster, table);
+    }
+  }
+
+  /**
+   * Can create a {@link Snapshot} of
+   * the appropriate type for a rule's calling convention.
+   */
+  public interface SnapshotFactory {
+    /**
+     * Creates a {@link Snapshot}.
+     */
+    RelNode createSnapshot(RelNode input, RexNode period);
+  }
+
+  /**
+   * Implementation of {@link RelFactories.SnapshotFactory} that
+   * returns a vanilla {@link LogicalSnapshot}.
+   */
+  public static class SnapshotFactoryImpl implements SnapshotFactory {
+    public RelNode createSnapshot(RelNode input, RexNode period) {
+      return LogicalSnapshot.create(input, period);
     }
   }
 

@@ -350,7 +350,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     productsTable.addColumn("SUPPLIERID", f.intType);
     registerTable(productsTable);
 
-    // Register "PRODUCTS" table.
+    // Register "PRODUCTS_TEMPORAL" table.
     MockTable productsTemporalTable = MockTable.create(this, salesSchema, "PRODUCTS_TEMPORAL",
         false, 200D);
     productsTemporalTable.setTemporal(true);

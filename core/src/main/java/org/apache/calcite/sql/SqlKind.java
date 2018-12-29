@@ -238,9 +238,9 @@ public enum SqlKind {
   MATCH_RECOGNIZE,
 
   /**
-   * TEMPORAL operator
+   * SNAPSHOT operator
    */
-  TEMPORAL,
+  SNAPSHOT,
 
   // binary operators
 
