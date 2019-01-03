@@ -2658,17 +2658,16 @@ SqlSnapshot SnapshotOpt(SqlNode tableRef) :
  */
 SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
 {
-    final Span s, s0, s1, s2, s3;
+    final Span s, s0, s1, s2;
     SqlNodeList measureList = SqlNodeList.EMPTY;
     SqlNodeList partitionList = SqlNodeList.EMPTY;
     SqlNodeList orderList = SqlNodeList.EMPTY;
     SqlNode pattern;
-    SqlNode interval;
+    SqlLiteral interval;
     SqlNodeList patternDefList;
-    final SqlNode emit;
     final SqlNode after;
     SqlParserPos pos;
-    SqlNode var;
+    final SqlNode var;
     final SqlLiteral rowsPerMatch;
     SqlNodeList subsetList = SqlNodeList.EMPTY;
     SqlLiteral isStrictStarts = SqlLiteral.createBoolean(false, getPos());
@@ -2762,33 +2761,9 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     )
     <RPAREN>
     (
-        <WITHIN>
-        (
-            interval = IntervalLiteral()
-        |
-            interval = IntervalDefinition()
-        )
+        <WITHIN> interval = IntervalLiteral()
     |
         { interval = null; }
-    )
-    (
-        <EMIT> { s3 = span(); } <TIMEOUT>
-        (
-            <EVERY>
-            var = EmitIntervalDefinition() {
-                emit = SqlMatchRecognize.EMIT_TIMEOUT_EVERY.createCall(
-                    s3.end(var), var);
-            }
-        |
-            <LPAREN>
-            var = EmitIntervalDefinitionCommaList(s3) {
-                emit = SqlMatchRecognize.EMIT_TIMEOUT.createCall(
-                    s3.end(var), var);
-            }
-            <RPAREN>
-        )
-    |
-        { emit = null; }
     )
     [
         <SUBSET>
@@ -2799,18 +2774,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     <RPAREN> {
         return new SqlMatchRecognize(s.end(this), tableRef,
             pattern, isStrictStarts, isStrictEnds, patternDefList, measureList,
-            after, subsetList, rowsPerMatch, partitionList, orderList, interval, emit);
-    }
-}
-
-SqlNode IntervalDefinition() :
-{
-    SqlNode e;
-}
-{
-    <INTERVAL>
-    e = Expression(ExprContext.ACCEPT_NON_QUERY) {
-        return e;
+            after, subsetList, rowsPerMatch, partitionList, orderList, interval);
     }
 }
 
@@ -2844,41 +2808,6 @@ SqlNode MeasureColumn() :
     <AS>
     alias = SimpleIdentifier() {
         return SqlStdOperatorTable.AS.createCall(Span.of(e).end(this), e, alias);
-    }
-}
-
-SqlNodeList EmitIntervalDefinitionCommaList(Span s) :
-{
-    SqlNode e;
-    final List<SqlNode> eList = new ArrayList<SqlNode>();
-}
-{
-    e = EmitIntervalDefinition() {
-        eList.add(e);
-    }
-    (
-        <COMMA>
-        e = EmitIntervalDefinition() {
-            eList.add(e);
-        }
-    )*
-    {
-        return new SqlNodeList(eList, s.addAll(eList).pos());
-    }
-}
-
-SqlNode EmitIntervalDefinition() :
-{
-    SqlNode e;
-}
-{
-    (
-        e = IntervalLiteral()
-    |
-        e = IntervalDefinition()
-    )
-    {
-        return e;
     }
 }
 

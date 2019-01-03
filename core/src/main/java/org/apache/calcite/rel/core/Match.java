@@ -69,7 +69,6 @@ public abstract class Match extends SingleRel {
   protected final List<RexNode> partitionKeys;
   protected final RelCollation orderKeys;
   protected final RexNode interval;
-  protected final RexNode emit;
 
   //~ Constructors -----------------------------------------------
 
@@ -91,7 +90,6 @@ public abstract class Match extends SingleRel {
    * @param partitionKeys Partition by columns
    * @param orderKeys Order by columns
    * @param interval Interval definition, null if WITHIN clause is not defined
-   * @param emit Emit definition
    */
   protected Match(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       RelDataType rowType, RexNode pattern,
@@ -99,7 +97,7 @@ public abstract class Match extends SingleRel {
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       RexNode rowsPerMatch, List<RexNode> partitionKeys, RelCollation orderKeys,
-      RexNode interval, RexNode emit) {
+      RexNode interval) {
     super(cluster, traitSet, input);
     this.rowType = Objects.requireNonNull(rowType);
     this.pattern = Objects.requireNonNull(pattern);
@@ -114,7 +112,6 @@ public abstract class Match extends SingleRel {
     this.partitionKeys = ImmutableList.copyOf(partitionKeys);
     this.orderKeys = Objects.requireNonNull(orderKeys);
     this.interval = interval;
-    this.emit = emit;
 
     final AggregateFinder aggregateFinder = new AggregateFinder();
     for (RexNode rex : this.patternDefinitions.values()) {
@@ -192,16 +189,12 @@ public abstract class Match extends SingleRel {
     return interval;
   }
 
-  public RexNode getEmit() {
-    return emit;
-  }
-
   public abstract Match copy(RelNode input, RelDataType rowType,
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       RexNode rowsPerMatch, List<RexNode> partitionKeys, RelCollation orderKeys,
-      RexNode interval, RexNode emit);
+      RexNode interval);
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     if (getInputs().equals(inputs)
@@ -211,7 +204,7 @@ public abstract class Match extends SingleRel {
 
     return copy(inputs.get(0), rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, rowsPerMatch,
-        partitionKeys, orderKeys, interval, emit);
+        partitionKeys, orderKeys, interval);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
@@ -222,7 +215,6 @@ public abstract class Match extends SingleRel {
         .item("rowsPerMatch", getRowsPerMatch())
         .item("after", getAfter())
         .item("pattern", getPattern())
-        .itemIf("emit", getEmit(), getEmit() != null)
         .item("isStrictStarts", isStrictStart())
         .item("isStrictEnds", isStrictEnd())
         .itemIf("interval", getInterval(), getInterval() != null)

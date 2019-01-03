@@ -442,8 +442,7 @@ public class RelFactories {
         RelDataType rowType, boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-        RexNode allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
-        RexNode interval, RexNode emit);
+        RexNode allRows, List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval);
   }
 
   /**
@@ -456,10 +455,10 @@ public class RelFactories {
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, ? extends SortedSet<String>> subsets,
         RexNode rowsPerMatch, List<RexNode> partitionKeys, RelCollation orderKeys,
-        RexNode interval, RexNode emit) {
+        RexNode interval) {
       return LogicalMatch.create(input, rowType, pattern, strictStart,
           strictEnd, patternDefinitions, measures, after, subsets, rowsPerMatch,
-          partitionKeys, orderKeys, interval, emit);
+          partitionKeys, orderKeys, interval);
     }
   }
 }

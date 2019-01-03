@@ -48,6 +48,7 @@ import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
@@ -483,16 +484,10 @@ public class RelToSqlConverter extends SqlImplementor
     final SqlLiteral strictStart = SqlLiteral.createBoolean(e.isStrictStart(), POS);
     final SqlLiteral strictEnd = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
 
-    RexNode rexInterval = e.getInterval();
-    SqlNode interval = null;
+    RexLiteral rexInterval = (RexLiteral) e.getInterval();
+    SqlIntervalLiteral interval = null;
     if (rexInterval != null) {
-      interval = context.toSql(null, rexInterval);
-    }
-
-    RexNode rexEmit = e.getEmit();
-    SqlNode emit = null;
-    if (rexEmit != null) {
-      emit = context.toSql(null, rexEmit);
+      interval = (SqlIntervalLiteral) context.toSql(null, rexInterval);
     }
 
     final SqlNodeList subsetList = new SqlNodeList(POS);
@@ -523,7 +518,7 @@ public class RelToSqlConverter extends SqlImplementor
 
     final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
         pattern, strictStart, strictEnd, patternDefList, measureList, after,
-        subsetList, rowsPerMatch, partitionList, orderByList, interval, emit);
+        subsetList, rowsPerMatch, partitionList, orderByList, interval);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
   }
 
